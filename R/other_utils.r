@@ -17,7 +17,7 @@
 #' @param ctlfile the name of the control file to change, defaults = "ss3.ctl"
 #' @param directory the directory in which the control exists that is to be
 #'     changed; defaults to NA but should be calc, defined as the subdirectory
-#'     in which all calculations occur within r4sessf
+#'     in which all calculations occur within rforSS3
 #' @param pos the position in the vector of numbers in the line; default 3
 #' @param pos2  position of the phase, which for a likelihood profile should
 #'     be turned negative; defaults to 7
@@ -32,7 +32,7 @@
 #' control <- changeCtl("NatM_p_1_Fem_GP_1",profvalue[1],ctlfile="ss3.ctl",calc,
 #'                       pos=varpos,pos2=phasepos)
 #' write(control,file=paste0(calc,"ss3.ctl"))
-#' print("See worked example in the r4sessf vignette")
+#' print("See worked example in the rforSS3 vignette")
 #' }
 changeCtl <- function(param,newvalue,ctlfile="ss3.ctl",directory=NA,pos=3,pos2=7) {
   ctrlfile <- filenametoPath(directory,ctlfile)
@@ -196,7 +196,7 @@ which.closest <- function(x,invect,index=T) {
 #'
 #' @description copyto copies the ctl, dat, par, sta, and for files from one
 #'     directory to another, changing the name to match to destination
-#'     sub-directory as appropriate. Used in conjunction with r4sessf in the
+#'     sub-directory as appropriate. Used in conjunction with rforSS3 in the
 #'     development of a bridging analyis, or to prepare for a likelihood
 #'     profile, or sensitivity analysis. Now 'copyto' includes the option of
 #'     copying to a completely different path and will create the 'todir' if it
@@ -224,10 +224,10 @@ which.closest <- function(x,invect,index=T) {
 #' # When the bridging analysis is completed and one might want to do a
 #' # set of likelihood profiles
 #' copyto(store,"basecase17","profileM",
-#'        neworigin="C:/A_CSIRO/Rcode/SESSF/ss3/oro2017/profile/")
+#'        neworigin="C:/Rcode/ss3/oro2017/profile/")
 #' # is equivalent to:
 #' copyto(origin=store,fromdir="basecase17",todir="profileM",
-#'        neworigin="C:/A_CSIRO/Rcode/SESSF/ss3/oro2017/profile/")
+#'        neworigin="C:/Rcode/ss3/oro2017/profile/")
 #' }
 copyto <- function (origin, fromdir, todir, neworigin = NA) {
    sourcedir <- filenametoPath(origin, fromdir)

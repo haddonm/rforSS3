@@ -16,7 +16,7 @@
 #' @export cleanDir
 #' @examples
 #' \dontrun{
-#' library(r4sessf)  # Dir <- store; SubDir <- "basecase"
+#' # Dir <- store; SubDir <- "basecase"
 #' print("An example has still to be written")
 #' }
 cleanDir <- function(Dir,SubDir) {
@@ -49,7 +49,6 @@ cleanDir <- function(Dir,SubDir) {
 #' @export codeBlock
 #' @examples
 #' \dontrun{
-#' library(r4sessf)
 #' codeBlock()
 #' codeBlock(6)
 #' }
@@ -75,7 +74,7 @@ codeBlock <- function(rows=2) {
 #' @export copyfiles
 #' @examples
 #' \dontrun{
-#' # library(r4sessf)  # x <- analysis; origin <- store; destination=calc
+#' # x <- analysis; origin <- store; destination=calc
 #' print("An example has still to be written")
 #' }
 copyfiles <- function(x,origin,destination) {
@@ -110,7 +109,6 @@ copyfiles <- function(x,origin,destination) {
 #' @export dirExists
 #' @examples
 #' \dontrun{
-#' # library(r4sessf)
 #' indirect <- getwd()
 #' dirExists(indirect)
 #' }
@@ -164,7 +162,6 @@ filenametoPath <- function(inpath,infile) {
 #' @export firstNum
 #' @examples
 #' \dontrun{
-#' # library(r4sessf)
 #' inputtxt <- "1  2   3   4"
 #' x <- unlist(strsplit(inputtxt," "))
 #' print(x)
@@ -193,7 +190,6 @@ firstNum <- function(intxt) {
 #' @export fixstarter
 #' @examples
 #' \dontrun{
-#' #library(r4sessf)
 #' print("An example has still to be written")
 #' }
 fixstarter <- function(directory,toscreen=FALSE) {
@@ -224,7 +220,6 @@ fixstarter <- function(directory,toscreen=FALSE) {
 #' @export getfirst
 #' @examples
 #' \dontrun{
-#' library(r4sessf)
 #' print("being developed")
 #' #getfirst(txt,2,rnd=FALSE)
 #' }
@@ -279,7 +274,6 @@ getCase <- function(basecase,index=1,printout=TRUE) {
 #' @export getlast
 #' @examples
 #' \dontrun{
-#' library(r4sessf)
 #' print("being developed")
 #' #getlast(txt,2)
 #' }
@@ -301,7 +295,6 @@ getlast <- function(txtlist,index) {
 #' @export getNum
 #' @examples
 #' \dontrun{
-#' # library(r4sessf)
 #' inputtxt <- "[1]  2   3   4"
 #' x <- unlist(strsplit(inputtxt," "))
 #' print(x)
@@ -325,7 +318,6 @@ getNum <- function(intxt,index=1) {
 #' @export getStatus
 #' @examples
 #' \dontrun{
-#' # library(r4sessf)
 #' print("run an example and apply this to the output file")
 #' }
 getStatus <- function(txtlist) {  # txtlist <- plotreport
@@ -351,7 +343,6 @@ getStatus <- function(txtlist) {  # txtlist <- plotreport
 #' @export makeLabel
 #' @examples
 #' \dontrun{
-#' library(r4sessf)
 #' x <- c(1,2,3,4,5)
 #' makeLabel(x)
 #' makeLabel(x,"-")
@@ -459,7 +450,6 @@ runSS3 <- function(wkdir,exec="SS3",calcdir="calc/") {
 #' @export removeEmpty
 #' @examples
 #' \dontrun{
-#' # library(r4sessf)
 #' inputtxt <- "a  b   c   g"
 #' x <- unlist(strsplit(inputtxt," "))
 #' print(x)
@@ -530,7 +520,6 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 #' @export storeresults
 #' @examples
 #' \dontrun{
-#' library(r4sessf)
 #' print("An example has still to be written")
 #' }
 storeresults <- function(origin,destination) {

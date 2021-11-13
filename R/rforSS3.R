@@ -1,8 +1,10 @@
 #' rforSS3 functions to facilitate using Stock Synthesis
 #'
 #' @description The rforSS3 package provides a selection of functions needed
-#'   when conducting stock assessments in the SESSF. The current version of
-#'   rforSS3 only contains functions that are used with SS3.
+#'   when conducting stock assessments using Stock Synthesis 3. The current 
+#'   version of rforSS3 contains functions that are used with SS3 for 
+#'   relatively advanced assessments, but the intent is to include others
+#'   to simplify its use in data-poor situations.
 #'
 #'   The package includes utility functions that manage directory structures
 #'   and, once an analysis is selected, they manage the workflow, copying files
@@ -39,7 +41,7 @@
 #'   \item placeholder
 #' }
 #' @docType package
-#' @name r4sessf
+#' @name rforSS3
 NULL
 
 
