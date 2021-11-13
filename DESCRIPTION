@@ -1,0 +1,26 @@
+Package: rforSS3
+Title: Functions to Facilitate Using Stock Synthesis 3
+Description: Stock Synthesis 3 is excellent software for an array of alternative
+    stock assessment scenarios. rforSS3 is designed to assist with things like
+    setting up new sub-directories with copies of the necessary files, 
+    simplifying the process of iterative re-weighting of veriances, and 
+    hopefully, simplifying its use for data-low situations.
+URL: https://www.github.com/haddonm/rforSS3
+Depends: R (>= 3.5.0)    
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Malcolm",
+           family = "Haddon",
+           role = c("aut", "cre"),
+           email = "malcolm.haddon@gmail.com")
+Maintainer: Malcolm Haddon <malcolm.haddon@gmail.com>    
+License: GPL (>= 3)
+Imports: rutilsMH,
+         makehtml
+Suggests: 
+    knitr,
+    rmarkdown         
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
