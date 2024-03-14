@@ -14,7 +14,6 @@
 #'   \item cleanDir - removes any previous analyses and plots stored in 'SubDir'
 #'   \item copyfiles - copies required files from store to the calc directory
 #'   \item dirExists: Creates a directory if it does not already exist
-#'   \item filenametoPath - safely add a filename to a path
 #'   \item storeresults - Copies result files back into destination directory
 #'   \item placeholder
 #'   \item placeholder
@@ -51,6 +50,7 @@ NULL
 #' @importFrom grDevices dev.cur dev.new dev.off graphics.off png
 #' @import graphics
 #' @importFrom utils read.csv tail
+#' @importFrom codeutils pathtopath
 NULL
 
 

@@ -12,7 +12,7 @@ fixstarter(directory, findtext = "use init value", toscreen = FALSE)
 }}
 
 \item{toscreen}{\itemize{
-\item defaults to FALSE, meaning no information is sent ot the
+\item defaults to FALSE, meaning no information is sent to the
 screen when this function is called.
 }}
 }
@@ -27,7 +27,6 @@ the line with 'use init value' in it, changing the number at the start
 from 0 to 1, and resaving the file.
 }
 \examples{
-\dontrun{
 print("An example has still to be written")
-}
+# typical syntax  fixstarter(calc,findtext="init_values_src")
 }

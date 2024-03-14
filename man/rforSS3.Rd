@@ -22,7 +22,6 @@ to the 'calc' directory and once finished copying the results back again.
 \item cleanDir - removes any previous analyses and plots stored in 'SubDir'
 \item copyfiles - copies required files from store to the calc directory
 \item dirExists: Creates a directory if it does not already exist
-\item filenametoPath - safely add a filename to a path
 \item storeresults - Copies result files back into destination directory
 \item placeholder
 \item placeholder

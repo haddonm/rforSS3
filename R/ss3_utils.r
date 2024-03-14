@@ -24,8 +24,8 @@ cleanDir <- function(Dir,SubDir) {
                  "echoinput.sso","Forecast-report.sso","ParmTrace.sso",
                  "Report.sso","SIS_table.sso","warning.sso","ss.cor","ss.std",
                  "ss.rep")
-   targetpath <- filenametoPath(Dir,SubDir)
-   removefiles <- filenametoPath(targetpath,delfiles)
+   targetpath <- pathtopath(Dir,SubDir)
+   removefiles <- pathtopath(targetpath,delfiles)
    numfiles <- length(removefiles)
    for (i in 1:numfiles) {
       if (file.exists(removefiles[i])) {
@@ -34,7 +34,7 @@ cleanDir <- function(Dir,SubDir) {
          cat(paste0(delfiles[i],"  is not present  \n"))
       }
    }
-   targetpath <- filenametoPath(targetpath,"plots")
+   targetpath <- pathtopath(targetpath,"plots")
    file.remove(dir(targetpath,full.names=TRUE))
 }  # end of cleanDir
 
@@ -102,53 +102,38 @@ copyfiles <- function(x,origin,destination) {
 #'
 #' @description dirExists: Creates a directory if it does not already exist
 #'   it use dir.create but avoids the warning message is one already exists
+#'   
 #' @param indir a character string containing the name of the directory to
 #'   be created if it does not already exist
+#' @param create default = TRUE, should the input directory be created if it
+#'     does not already exist?
+#'   
 #' @return a message to the screen if the directory exists or is created; if
 #'   the latter then it also creates the directory as listed in 'indir'.
+#'   
 #' @export dirExists
 #' @examples
 #' \dontrun{
 #' indirect <- getwd()
-#' dirExists(indirect)
+#' dirExists(indirect,create=FALSE)
 #' }
-dirExists <- function(indir) {
+dirExists <- function(indir,create=TRUE) {
    if (dir.exists(indir)) {
       cat(indir,":  exists  \n")
    } else {
-      dir.create(file.path(indir))
-      cat(indir,":  created  \n")
+     if (create) {
+       dir.create(file.path(indir))
+       cat(indir,":  created  \n")
+     } else {
+       label <- paste0(indir," does not exist, would you like to create it?")
+       if (askYesNo(label,
+                  prompts=getOption("askYesNo", gettext(c("y", "y", "Cancel"))))) {
+         dir.create(file.path(indir))
+         cat(indir,":  created  \n")
+       }
+     }
    }
 }  # end of dirExists
-
-
-#' @title filenametoPath - safely add a filename or subdirectory to a path
-#'
-#' @description filenametoPath - safely add a filename or subdirectory to a path
-#'    uses pathtype to get the seperator and then checks the end character.
-#'    If the separator is nothing of a '/' or a '//' then it reacts accordingly.
-#'    Without this one can unwittingly include extra separators or none at all.
-#'
-#' @param inpath - the path to be analysed
-#' @param infile - the filename or subdirectory to be added to the path 'inpath'
-#'
-#' @return the completed filename or extended path
-#' @export
-#' @examples
-#' \dontrun{
-#' resultpath <- "C:\\place\\Rcode\\place2\\dir3\\"
-#' infile <- "starter.ss"
-#' filenametoPath(resultpath,infile)
-#' }
-filenametoPath <- function(inpath,infile) {
-   typepath <- pathtype(inpath)
-   endpath <- pathend(inpath)
-   if (is.na(endpath)) {
-      outfile <- paste(inpath,infile,sep=typepath)
-   } else { outfile <- paste(inpath,infile,sep="")
-   }
-   return(outfile)
-} # end of filenametoPath
 
 
 #' @title firstNum - converts the first string in a vector to a number
@@ -183,17 +168,16 @@ firstNum <- function(intxt) {
 #'    the line with 'use init value' in it, changing the number at the start
 #'    from 0 to 1, and resaving the file.
 #' @param directory - the calculation directory in which starter.ss can be found
-#' @param toscreen - defaults to FALSE, meaning no information is sent ot the
+#' @param toscreen - defaults to FALSE, meaning no information is sent to the
 #'    screen when this function is called.
 #' @return starter.ss is modified so that ss3 will use the previously
 #'    estimated par file as the starting point in the estimation
 #' @export fixstarter
 #' @examples
-#' \dontrun{
 #' print("An example has still to be written")
-#' }
+#' # typical syntax  fixstarter(calc,findtext="init_values_src")
 fixstarter <- function(directory,findtext="use init value",toscreen=FALSE) {
-   startfile <- filenametoPath(directory,"starter.ss")
+   startfile <- pathtopath(directory,"starter.ss")
    starter <- readLines(con = startfile)
    pickP <- grep(findtext,starter,fixed=TRUE)
    if (length(pickP) != 1) stop("More than one or no ",findtext," in starter.ss")
@@ -533,9 +517,9 @@ storeresults <- function(origin,destination) {
    nfiles <- length(getfiles)
    for (fil in 1:nfiles) { # fil <- 1
       x <- getfiles[fil]
-      filename <- filenametoPath(origin,x)
+      filename <- pathtopath(origin,x)
       if (file.exists(filename)) {
-         fileout <- filenametoPath(destination,x)
+         fileout <- pathtopath(destination,x)
          file.copy(filename,fileout,overwrite=TRUE,copy.date=TRUE)
       } else {
          warning(paste0(x,"  missing from 'calc'   \n"))

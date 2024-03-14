@@ -4,11 +4,14 @@
 \alias{dirExists}
 \title{dirExists: Checks for the existence of a directory}
 \usage{
-dirExists(indir)
+dirExists(indir, create = TRUE)
 }
 \arguments{
 \item{indir}{a character string containing the name of the directory to
 be created if it does not already exist}
+
+\item{create}{default = TRUE, should the input directory be created if it
+does not already exist?}
 }
 \value{
 a message to the screen if the directory exists or is created; if
@@ -21,6 +24,6 @@ it use dir.create but avoids the warning message is one already exists
 \examples{
 \dontrun{
 indirect <- getwd()
-dirExists(indirect)
+dirExists(indirect,create=FALSE)
 }
 }

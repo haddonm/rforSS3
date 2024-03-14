@@ -35,7 +35,7 @@
 #' print("See worked example in the rforSS3 vignette")
 #' }
 changeCtl <- function(param,newvalue,ctlfile="ss.ctl",directory=NA,pos=3,pos2=7) {
-  ctrlfile <- filenametoPath(directory,ctlfile)
+  ctrlfile <- pathtopath(directory,ctlfile)
   control <- readLines(con = ctrlfile)
   pickP <- grep(param,control,fixed=TRUE)
   if (length(pickP) == 0) stop(cat(param," not in ",ctlfile,"\n"))
@@ -72,7 +72,7 @@ changeCtl <- function(param,newvalue,ctlfile="ss.ctl",directory=NA,pos=3,pos2=7)
 #' @return it re-writes the ss.par file and prints a confirmation to the console
 #' @export
 changePar <- function(newvalue,directory) {  # newvalue=9.0; directory=calc
-  parfile <- filenametoPath(directory,"ss.par")
+  parfile <- pathtopath(directory,"ss.par")
   pars <- readLines(con = parfile)
   pickP <- grep("SR_parm[1]",pars,fixed=TRUE)
   if (length(pickP) == 0) stop("SR_parm[1] not in ss.par")
@@ -124,11 +124,11 @@ changePar <- function(newvalue,directory) {  # newvalue=9.0; directory=calc
 #'        neworigin="C:/Rcode/ss3/oro2017/profile/")
 #' }
 sscopyto <- function (origin, fromdir, todir, neworigin = NA) {
-   sourcedir <- filenametoPath(origin, fromdir)
+   sourcedir <- pathtopath(origin, fromdir)
    if (is.na(neworigin)) {
-      destdir <- filenametoPath(origin, todir)
+      destdir <- pathtopath(origin, todir)
    } else {
-      destdir <- filenametoPath(neworigin, todir)
+      destdir <- pathtopath(neworigin, todir)
    }
    if (!dir.exists(sourcedir))
       stop(cat(paste0(fromdir, " does not exist!   \n\n")))
@@ -140,9 +140,9 @@ sscopyto <- function (origin, fromdir, todir, neworigin = NA) {
    names(fileexist) <- postfix
    fil = 1
    for (fil in 1:5) {
-      filename <- filenametoPath(sourcedir, paste0(fromdir,postfix[fil]))
+      filename <- pathtopath(sourcedir, paste0(fromdir,postfix[fil]))
       tofile <- if (file.exists(filename)) {
-         fileout <- filenametoPath(destdir, paste0(todir,postfix[fil]))
+         fileout <- pathtopath(destdir, paste0(todir,postfix[fil]))
          file.copy(filename, fileout, overwrite = TRUE, copy.date = TRUE)
          fileexist[fil] <- 1
       } else {
