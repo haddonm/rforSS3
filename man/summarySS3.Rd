@@ -12,7 +12,7 @@ summarySS3(outfile)
 }}
 }
 \value{
-a list containing run details, number of paramters, and the
+a list containing run details, number of parameters, and the
 likelihoods estimated
 }
 \description{

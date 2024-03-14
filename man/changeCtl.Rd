@@ -2,12 +2,12 @@
 % Please edit documentation in R/other_utils.r
 \name{changeCtl}
 \alias{changeCtl}
-\title{changeCtl alters a parameter within the SS3.3 ctl file}
+\title{changeCtl alters a parameter within the SS3 ctl file}
 \usage{
 changeCtl(
   param,
   newvalue,
-  ctlfile = "ss3.ctl",
+  ctlfile = "ss.ctl",
   directory = NA,
   pos = 3,
   pos2 = 7
@@ -19,7 +19,7 @@ containing the parameter to change}
 
 \item{newvalue}{the value of the parameter to be set}
 
-\item{ctlfile}{the name of the control file to change, defaults = "ss3.ctl"}
+\item{ctlfile}{the name of the control file to change, defaults = "ss.ctl"}
 
 \item{directory}{the directory in which the control exists that is to be
 changed; defaults to NA but should be calc, defined as the subdirectory
@@ -34,7 +34,7 @@ be turned negative; defaults to 7}
 new control file
 }
 \description{
-changeCtl alters a parameter within the SS3.3 ctl file
+changeCtl alters a parameter within the SS3 ctl file
 once it has been copied into the calc directory. This means the
 original is never messed with. It finds the param string within
 the ctl file andmodifies that line of text by replacing the

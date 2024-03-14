@@ -8,7 +8,7 @@ storeresults(origin, destination)
 }
 \arguments{
 \item{origin}{\itemize{
-\item the directory from which the files are t obe copied.
+\item the directory from which the files are to be copied.
 }}
 
 \item{destination}{\itemize{

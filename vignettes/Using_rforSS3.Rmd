@@ -1,0 +1,272 @@
+---
+title: "Using rforSS3"
+author: "Malcolm Haddon"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using rforSS3}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE)
+options(knitr.kable.NA = "",
+        knitr.table.format = "pandoc")
+
+options("show.signif.stars"=FALSE,"stringsAsFactors"=FALSE,
+        "max.print"=50000,"width"=240)
+
+library(rforSS3)
+library(r4ss)
+library(knitr)
+
+```
+
+
+## Introduction
+
+The package rforSS3 is designed to assist the user conduct age-structured stock assessments
+that apply the SS3 software to stocks. Details of SS3 and the latest version can be found at
+https://github.com/nmfs-stock-synthesis/stock-synthesis. This assistance package has been 
+tested with version 3.3 but it should also work with some earlier versions. 
+
+This package and this vignette are not designed to teach anyone how best to use SS3, but
+rather it provides for a simplified workflow for developing basecase analyses. The
+automation of further
+analyses (sensitivity analyses, likelihood profiles, and alternative plots for reports)
+will follow in later versions. This package is expected to be useful, for example, 
+where there is already an earlier stock assessment laid 
+out in SS3, or one is being generated from scratch with a brand new stock assessment. 
+
+If there is an earlier assessment then the aim would be to move incrementally to a 
+new assessment by adding the new contribution to each data stream in turn so as to 
+see the influence the additional data has on the assessment trend (a so-called 
+bridging analysis). In addition to 
+the incremental addition to the data streams it may also be possible to include 
+structural changes to the model (adding a new selectivity curve for a different
+data stream (perhaps the inclusion of survey length frequencies leads to a need for
+a new selectivity). Thus the incremental steps would take the data and ctrl files from
+each previous step, make the required changes, and then refit the model:
+
+
+* Repeat the earlier assessment without adding new data (refit the model)  
+* Add in the new catch and CPUE data (refit the model)  
+* Add in the new length-composition data (refit the model)  
+* Add in the new age-composition data (refit the model)  
+* Include a new ageing error matrix (refit the model)  
+* Turn on the fitting of the selectivity (refit the model)  
+* Include more years of recruitment residuals (refit the model)  
+* Iteratively balance the age- and length-composition data (refit the model)  
+* Iteratively adjust the recruitment residual bias estimates (refit the model).   
+
+If starting from a new model then it could involve starting from the simplest 
+model and sequentially adding more data sets in the same manner. 
+
+Each of the steps above involves adding more information to either the X.ctl or the 
+X.dat files, or both. 
+
+## Directory Structure
+
+The use of the sequential analysis whereby different new data are added to the stock 
+assessment model naturally lends itself to having a separate directory for each step under
+a species directory. Hence one might have:
+
+* speciesname
+    * calc
+    * basecase
+        * origassess
+        * newCatchCPUE
+        * newLenComp
+        * newAgeComp
+        * etc...
+
+The 'speciesname' directory can be placed anywhere convenient, but the path, including
+speciesname (perhaps "c:\\mydir\\rcode\\ss3\\speciesname\\") will be the 
+working directory (here abbreviated to rundir). In the rundir will be a 'calc' 
+directory into which you would place a copy of the SS3.exe that will be used. In 
+the 'basecase' directory will be placed the various sub-directories which will hold 
+the files necessary for the sequential inclusion of data sets. 
+
+After completion of the basecase then one might have a 'sensitivity' directory, or 
+a 'profile' directory included under the speciesname directory.
+
+## Getting Started
+
+Rather than put together this directory structure yourself rforSS3 provides functions
+(dirExists) to simplify the process of generating the required directories. 
+
+In a typical script one would first attach the required libraries, and then 
+define the working directories into which the rest will be placed. The example below runs
+as if it were for a species called 'testsps'. If the analysis were for a species such
+as orange roughy then the rundir might be "C:/A_CSIRO/Rcode/SESSF/ss3/oroughy/":
+
+```{r,eval=FALSE}
+
+rundir <- "C:/A_CSIRO/Rcode/SESSF/ss3/testsps/"
+# The directory structure inside the selected rundir will include 'store' and 'calc'
+# 'store' contains a directory for each step in the move from the previous
+# balanced basecase to the new balanced basecase (or from the simplest model to the
+# most complex).
+# 'calc' is the directory in which all the SS3 files are put ready for analysis. 
+# SS3.exe needs to be put in 'calc'.
+store <- paste0(rundir,"basecase/")  # define directories
+calc <- paste0(rundir,"calc/")
+# generate these two directories; if the directory exists the function does nothing,
+# if it doesn't exist then it is created.
+dirExists(store)
+dirExists(calc)
+# what sub-directories will be used within 'basecase'?
+# Change these names to suit those that will actually be used/that are wanted.
+# The sequence represents the order in which data will be added to the earliest of
+# simplest model leading to the final balanced basecase
+basecase <- c("origbase24f","origbase24u","newCatCE","newLenComp","newAgeComp",
+              "newLenatAge","ageingerror","newRecs","balanced")
+numdirs <- length(basecase)
+# now safely generate the directories
+for (direct in 1:numdirs) dirExists(paste0(store,basecase[direct]))
+```
+
+If the directories already exist then all that will happen is that you will 
+receive some warning messages identifying exactly which directories already exist, 
+which you can ignore.
+
+Now ensure that you have X.ctl, X.dat, X.par, X.for, and X.sta file in each
+directory where X is the name of each directory within store (= basecase; or whatever
+you decided to call it). The files required by SS3 are:
+
+X.ctl is the control file
+
+X.dat is the data file
+
+X.par is the parameter file
+
+X.for is the forcast file
+
+X.sta is the starter file
+
+In the example case here, the directories include 'origbase',
+'newCatCE', and 'balanced' although, in fact, there are a bunch of steps between the
+newCatCE data being added and the final 'balanced' model fit.
+
+In addition, it is necessary to ensure you have a copy of the SS3.exe file you 
+intend using for the analyses placed into the 'calc' directory   
+
+Assuming you have done this it is then possible to move to the next step of
+defining the possible analyses and either stepping through them or selecting 
+which one to analyze and then copying the five required SS3 files into calc.
+
+```{r,eval=FALSE}
+basecase <- c("origbase24f","origbase24f","newCatCE","balanced") # remember 'basecase' 
+   #  is also the directory in which these sub-directories are kept.
+numiter <- length(basecase)
+```
+
+Loop through the directories of 'basecase' if you have prepared the five
+required files in each directory, that is the  X.ctl, X.dat, X.par, X.for,
+and X.sta file. In each new directory that would entail including extra data 
+in the .dat file and adjusting the .ctl file accordingly.
+
+If this inclusion of new data is being done in a manual stepwise fashion, which I 
+would recommend the first time this is done, then set
+the value for 'iter' manually after hashing  out the loop (don't forget to hash the
+closing brace)
+
+```{r,eval=FALSE}
+#for (iter in 1:numiter) {
+iter <- 1      # choose which analysis is done by changing the value of 'iter'
+analysis <- basecase[iter]  
+print(analysis)            # confirm which analysis has been selected
+cleanDir(store,analysis)   # cleans out any old analyses if present
+copyfiles(analysis,store,calc) # copy and rename the needed files into calc
+```
+
+We are going to invoke SS3 from within R
+
+
+```{r,eval=FALSE}
+# now call SS3 -nohess twice, second time using the par file estimated from the
+# first call, then the third time calculate the hessian as well so as to include
+# estimates of the standard errors.
+# First define the commands required to call SS3; note that the screen output in
+# each case is piped into different txt files (which are also saved back into the 
+# 'store' directory for each step. (see below)
+command <- paste0(rundir,"calc/ss3.exe -nohess")
+finalcommand <- paste0(rundir,"calc/ss3.exe")
+command1 <- paste0(command," > ",paste0(calc,"1rundetails.txt"))
+command2 <- paste0(command," > ",paste0(calc,"2rundetails.txt"))
+command3 <- paste0(finalcommand," > ",paste0(calc,"3rundetails.txt"))
+# the '>' are pipes that redirect the text output from SS3 into the defined txt files.
+# these will be copied back to the analysis directory within the store directory
+setwd(calc)    # change directory to where the analyses will occur
+shell(command1,wait=TRUE,invisible=T)  # first run of SS3
+# use 'fixstarter' function to modify the starter.ss file in the calc directory to 
+# use the par file
+cat("\n\n")
+cat("End of first -nohess Run  \n")
+fixstarter(calc,toscreen=F)     # change the starter.ss file to use the X.par file
+cat("starter.ss file modified to use the .par file \n\n")
+shell(command2,wait=TRUE,invisible=T)  # second run of SS3
+cat("\n  End of second -nohess Run  \n")
+cat(" Final run, with Hessian generation \n\n")
+shell(command3,wait=TRUE,invisible=T)  # final run of SS3
+# Now return the required files back into the source directory defined
+# in store and basecase
+setwd(rundir)
+destination <- paste0(store,analysis,"/")
+storeresults(calc,destination)
+```
+
+Once the analysis is complete this will have transferred all the required files 
+back into the original directory holding the X.ctl, X.dat, X.par, X.for, and X.sta 
+files. These result files can then be used to print out and plot the various results.
+If one looks through the various .sso files (e.g. CompReport.sso or report.sso)
+the outputs are complex and difficult to find. Fortunately in the package r4ss the
+function 'SS_output' will create a list of required results which can then be
+used to plot out various diagnostics and results using 'SS_plots'. This latter
+will even generate an HTML interface for viewing the various files prior to use in 
+formal reports.
+
+```{r,eval=FALSE}
+# now print and plot the results using r4ss
+# first go to the directory where the results have been stored
+print(store)
+setwd(store)
+
+Btarget <- 0.41  # for Bight redfish, usually 0.48 the biomass Target Reference Point
+Blimit  <- 0.20  # default Commonwealth biomass Limit Reference Point
+
+replistnew <- SS_output(dir=destination, covar=TRUE,
+                        forecast=FALSE, cormax=0.95, cormin=0.01,
+                        printhighcor=50)
+
+finalplot <- SS_plots(replist=replistnew, btarg=Btarget,
+                      minbthresh=Blimit, uncertainty=TRUE, plot=1:24,
+                      datplot=TRUE, forecastplot=FALSE, png=TRUE)
+setwd(rundir)  # Tidy up; return to rundir
+#}  # end of iter loop - hash this out if manually selecting analysis
+```
+
+## Balancing the Final BaseCase Estimates
+
+Once all the transitional stages from the original basecase to the new 
+basecase are completed then attention needs to be paid to getting the 
+variance of the various data streams balanced as well as adjusting the
+recruitment variation and bias adjustment levels. See:
+
+* Francis, R.I.C.C. (2011) Data weighting in statistical fisheries stock 
+   assessment models. _Canadian Journal of Fisheries and Aquatic Sciences_
+   __68__: 1124-1138.
+    
+* Methot, R.D. and I.G. Taylor (2011) Adjusting for bias due to variability
+   of estimated recruitments in fishery assessment models. _Canadian 
+   Journal of Fisheries and Aquatic Sciences_ __68__: 1744-1760.
+ 
+* Walters, C., Hilborn, R., and V. Christensen, 2008, Surplus production 
+   dynamics in declining and recovering fish populations. _Canadian 
+   Journal of Fisheries and Aquatic Sciences_ __65__: 2536-2551.
+

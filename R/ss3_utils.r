@@ -23,7 +23,7 @@ cleanDir <- function(Dir,SubDir) {
    delfiles <- c("CompReport.sso","covar.sso","CumReport.sso",
                  "echoinput.sso","Forecast-report.sso","ParmTrace.sso",
                  "Report.sso","SIS_table.sso","warning.sso","ss.cor","ss.std",
-                 "ss.rep","1rundetails.txt","2rundetails.txt","3rundetails.txt")
+                 "ss.rep")
    targetpath <- filenametoPath(Dir,SubDir)
    removefiles <- filenametoPath(targetpath,delfiles)
    numfiles <- length(removefiles)
@@ -78,15 +78,15 @@ codeBlock <- function(rows=2) {
 #' print("An example has still to be written")
 #' }
 copyfiles <- function(x,origin,destination) {
-   postfix <- c(".ctl",".dat",".par",".for",".sta")
-   outfile <- c("ss3.ctl","ss3.dat","ss.par","forecast.ss","starter.ss")
+   postfix <- c(".ctl",".dat",".for",".sta",".par")
+   outfile <- c("ss.ctl","ss.dat","forecast.ss","starter.ss","ss.par")
    numfix <- length(postfix)
    fileexist <- numeric(numfix)
    for (fil in 1:numfix) {
       filename <- paste0(origin,x,"/",x,postfix[fil])
       if (file.exists(filename)) {
          fileout <- paste0(destination,outfile[fil])
-         file.copy(filename,fileout,overwrite=TRUE,copy.date=TRUE)
+         file.copy(filename,fileout,overwrite=TRUE,copy.date=FALSE)
          fileexist[fil] <- 1
       }
    }
@@ -192,11 +192,11 @@ firstNum <- function(intxt) {
 #' \dontrun{
 #' print("An example has still to be written")
 #' }
-fixstarter <- function(directory,toscreen=FALSE) {
+fixstarter <- function(directory,findtext="use init value",toscreen=FALSE) {
    startfile <- filenametoPath(directory,"starter.ss")
    starter <- readLines(con = startfile)
-   pickP <- grep("use init value",starter,fixed=TRUE)
-   if (length(pickP) != 1) stop("More than one '0=use init values' in STARTER.SS")
+   pickP <- grep(findtext,starter,fixed=TRUE)
+   if (length(pickP) != 1) stop("More than one or no ",findtext," in starter.ss")
    cutstart <- substr(starter[pickP[1]],2,nchar(starter[pickP[1]]))
    starter[pickP] <- paste0("1",cutstart)
    if (toscreen) print(starter)
@@ -408,7 +408,7 @@ pathtype <- function(inpath) {
 #'    working directory.
 #' @param wkdir - the full working directory eg fld2016
 #' @param exec the name of the executable within the calc subdirectory to use
-#'     with the particular set of SS files
+#'     with the particular set of SS files, default='SS'
 #' @param calcdir - the directory in which all calculations occur; defaults to
 #'    "calc/"
 #' @return conducts three separate SS3 runs for the input data. Sends messages
@@ -418,7 +418,8 @@ pathtype <- function(inpath) {
 #' \dontrun{
 #' print("Still need to develop a real example using included datasets")
 #' }
-runSS3 <- function(wkdir,exec="SS3",calcdir="calc/") {
+runSS3 <- function(wkdir,exec="SS",calcdir="calc/") {
+   cat("\n")
       cat("Switching to the calc directory and beginning the run. \n")
       calc <- paste0(wkdir,calcdir)
       setwd(calc)
@@ -466,7 +467,7 @@ removeEmpty <- function(invect) {
 #'
 #' @param outfile - text file containing screen dump from SS_output and SS_plots
 #'
-#' @return a list containing run details, number of paramters, and the
+#' @return a list containing run details, number of parameters, and the
 #'    likelihoods estimated
 #' @export summarySS3
 #'
@@ -513,7 +514,7 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 #'    SIS_table.sso, warning.sso, ss3.ctl, ss3.dat, ss3.par, ss3.rep, ss3.cor,
 #'    ss3.std, forecast.ss, starter.ss, 1rundetails.txt, 2rundetails.txt,
 #'    3rundetails.txt
-#' @param origin - the directory from which the files are t obe copied.
+#' @param origin - the directory from which the files are to be copied.
 #' @param destination - the directory into which the files are to be copied.
 #' @return The files listed under description are copied to the destination
 #'    directory. If any are missing a warning is given
@@ -525,10 +526,10 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 storeresults <- function(origin,destination) {
    getfiles <- c("CompReport.sso","covar.sso","CumReport.sso",
                  "echoinput.sso","Forecast-report.sso","ParmTrace.sso",
-                 "Report.sso","SIS_table.sso","warning.sso","ss3.ctl",
-                 "ss3.dat","ss.par","ss.rep","ss.cor","ss.std",
+                 "Report.sso","SIS_table.sso","warning.sso","ss.ctl",
+                 "ss.dat","ss.par","ss.rep","ss.cor","ss.std",
                  "forecast.ss","starter.ss","wtatage.ss_new",
-                 "1rundetails.txt","2rundetails.txt","3rundetails.txt")
+                 "control.ss_new","starter.ss_new")
    nfiles <- length(getfiles)
    for (fil in 1:nfiles) { # fil <- 1
       x <- getfiles[fil]

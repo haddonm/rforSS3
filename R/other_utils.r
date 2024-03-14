@@ -1,8 +1,8 @@
 
 
-#' @title changeCtl alters a parameter within the SS3.3 ctl file
+#' @title changeCtl alters a parameter within the SS3 ctl file
 #'
-#' @description changeCtl alters a parameter within the SS3.3 ctl file
+#' @description changeCtl alters a parameter within the SS3 ctl file
 #'     once it has been copied into the calc directory. This means the
 #'     original is never messed with. It finds the param string within
 #'     the ctl file andmodifies that line of text by replacing the
@@ -14,7 +14,7 @@
 #' @param param  the text used to identify the line within the control file
 #'     containing the parameter to change
 #' @param newvalue the value of the parameter to be set
-#' @param ctlfile the name of the control file to change, defaults = "ss3.ctl"
+#' @param ctlfile the name of the control file to change, defaults = "ss.ctl"
 #' @param directory the directory in which the control exists that is to be
 #'     changed; defaults to NA but should be calc, defined as the subdirectory
 #'     in which all calculations occur within rforSS3
@@ -34,13 +34,13 @@
 #' write(control,file=paste0(calc,"ss3.ctl"))
 #' print("See worked example in the rforSS3 vignette")
 #' }
-changeCtl <- function(param,newvalue,ctlfile="ss3.ctl",directory=NA,pos=3,pos2=7) {
+changeCtl <- function(param,newvalue,ctlfile="ss.ctl",directory=NA,pos=3,pos2=7) {
   ctrlfile <- filenametoPath(directory,ctlfile)
   control <- readLines(con = ctrlfile)
   pickP <- grep(param,control,fixed=TRUE)
-  if (length(pickP) == 0) stop(param," not in ss3.ctl")
+  if (length(pickP) == 0) stop(cat(param," not in ",ctlfile,"\n"))
   if (length(pickP) > 1) {
-    warning("More than one ",param," in ss3.ctl; using first value")
+    warning("More than one ",param," in ",ctlfile,"; using first value")
     pickP <- pickP[1]
   }
   cutline <- unlist(strsplit(control[pickP],"#"))
@@ -85,116 +85,10 @@ changePar <- function(newvalue,directory) {  # newvalue=9.0; directory=calc
   cat("New ",parfile,"  written \n")
 }  # end of changeParam
 
-#' @title plotprep: sets up a window and the par values for a single plot
-#'
-#' @description plotprep: sets up a window and the par values for a single plot.
-#'   it checks to see if a graphics device is open and opens a new one if not.
-#'   This is simply a utility function to save typing the standard syntax.
-#'   Some of the defaults can be changed. Typing the name without () will
-#'   provide a template for modification. If 'windows' is called repeatedly this
-#'   will generate a new active graphics device each time leaving the older ones
-#'   inactive but present. For quick exploratory plots this behaviour is not
-#'   wanted, hence the check if an active device exists already or not.
-#' @param width defaults to 6 inches = 15.24cm - width of plot
-#' @param height defaults to 3 inches = 7.62cm - height of plot
-#' @param plots defaults to c(1,1), but arranges multiple plots. If used it may
-#'    be necessary to print out this code and adjust the mai and oma variables
-#' @param usefont default is 7 (bold Times); 1 = sans serif, 2 = sans serif bold
-#' @param newdev reuse a previously defined graphics device or make a new one;
-#'    defaults to TRUE
-#' @param filename defaults to "" = do not save to a filename. If a filename is
-#' @return Checks for and sets up a graphics device and sets the default plotting
-#'   par values. This changes the current plotting options!
-#' @export
-#' @examples
-#' \dontrun{
-#' x <- rnorm(1000,mean=0,sd=1.0)
-#' plotprep()
-#' hist(x,breaks=30,main="",col=2)
-#' }
-plotprep <- function(width=6,height=4,plots=c(1,1),usefont=7,newdev=TRUE,filename="") {
-  if (newdev) suppressWarnings(dev.off())
-  lenfile <- nchar(filename)
-  if (lenfile > 3) {
-    end <- substr(filename,(lenfile-3),lenfile)
-    if (end != ".png") filename <- paste0(filename,".png")
-    png(filename=filename,width=width,height=height,units="in",res=300)
-  } else {
-  if (names(dev.cur()) %in% c("null device","RStudioGD"))
-      dev.new(width=width,height=height,noRStudioGD = TRUE)
-  }
-  par(mfrow = plots,mai=c(0.45,0.45,0.1,0.05),oma=c(0.0,0.0,0.0,0.0))
-  par(cex=0.85, mgp=c(1.35,0.35,0), font.axis=usefont,font=usefont)
-  if (lenfile > 0) cat("\n Remember to place 'graphics.off()' after the plot \n")
-} # end of plotprep
 
-
-
-#' @title printV returns a vector cbinded to 1:length(invect)
+#' @title sscopyto copies the ctl, dat, par, sta, and for files to new directory
 #'
-#' @description printV takes an input vector and generates another vector of
-#'     numbers 1:length(invect) which it cbinds to itself. This is primarily
-#'     useful when trying to print out a vector which can be clumsy to read when
-#'     print across the screen. applying printV leads to a single vector being
-#'     printed down the screen. Deprecated, now in rutilsMH
-#'
-#' @param invect the input vector to be more easily visualized, this can be
-#'     numbers, characters, or logical. If logical the TRUE and FALSE are
-#'     converted to 1's and 0's
-#'
-#' @return a dataframe containing the vector 1:length(invect), and invect.
-#' @export
-#'
-#' @examples
-#' vec <- rnorm(10,mean=20,sd=2)
-#' printV(vec)
-#' vec <- letters
-#' printV(vec)
-#' vec <- c(TRUE,TRUE,TRUE,FALSE,FALSE,TRUE,TRUE,FALSE,FALSE,TRUE,TRUE)
-#' printV(vec)
-printV <- function(invect) {
-   n <- length(invect)
-   outvect <- as.data.frame(cbind(1:n,invect))
-   return(outvect)
-} # end of printV
-
-
-## find an index in a vector, invect, closest to given value x
-## default is to return the value, set index=T to return the index
-
-#' @title which.closest find the number closest to a given value
-#'
-#' @description which.closest finds either the number in a vector which is
-#'     closest to the input value or its index value
-#'
-#' @param x the value to lookup
-#' @param invect the vector in which to lookup the value x
-#' @param index should the closest value be returned or its index; default=TRUE
-#'
-#' @return by default it returns the index in the vector of the value closest to
-#'     the input  value
-#' @export
-#'
-#' @examples
-#' vals <- rnorm(100,mean=5,sd=2)
-#' pick <- which.closest(5.0,vals,index=TRUE)
-#' pick
-#' vals[pick]
-#' which.closest(5.0,vals,index=FALSE)
-which.closest <- function(x,invect,index=T) {
-   pick <- which.min(abs(invect-x))
-   if (index) {
-      return(pick)
-   } else {
-      return(invect[pick])
-   }
-} # end of which.closest
-
-
-
-#' @title copyto copies the ctl, dat, par, sta, and for files to new directory
-#'
-#' @description copyto copies the ctl, dat, par, sta, and for files from one
+#' @description sscopyto copies the ctl, dat, par, sta, and for files from one
 #'     directory to another, changing the name to match to destination
 #'     sub-directory as appropriate. Used in conjunction with rforSS3 in the
 #'     development of a bridging analyis, or to prepare for a likelihood
@@ -219,17 +113,17 @@ which.closest <- function(x,invect,index=T) {
 #' \dontrun{
 #' # When conducting a bridging analysis using 'store' to define the path to
 #' # the various subdirecotries holding each step
-#' copyto(store,"addcatches","addsurvey")
+#' sscopyto(store,"addcatches","addsurvey")
 #' #
 #' # When the bridging analysis is completed and one might want to do a
 #' # set of likelihood profiles
-#' copyto(store,"basecase17","profileM",
+#' sscopyto(store,"basecase17","profileM",
 #'        neworigin="C:/Rcode/ss3/oro2017/profile/")
 #' # is equivalent to:
-#' copyto(origin=store,fromdir="basecase17",todir="profileM",
+#' sscopyto(origin=store,fromdir="basecase17",todir="profileM",
 #'        neworigin="C:/Rcode/ss3/oro2017/profile/")
 #' }
-copyto <- function (origin, fromdir, todir, neworigin = NA) {
+sscopyto <- function (origin, fromdir, todir, neworigin = NA) {
    sourcedir <- filenametoPath(origin, fromdir)
    if (is.na(neworigin)) {
       destdir <- filenametoPath(origin, todir)
@@ -258,7 +152,7 @@ copyto <- function (origin, fromdir, todir, neworigin = NA) {
    }
    return(fileexist)
 }
-# end of copyto
+# end of sscopyto
 
 
 #' @title summarizeSS3 provides a set of summary statistics from SS_output
@@ -272,7 +166,8 @@ copyto <- function (origin, fromdir, todir, neworigin = NA) {
 #'
 #' @param replist the object generated by SS_output
 #'
-#' @return a list of results and parameters that start with priors
+#' @return a list of results and parameters that start with priors, and 
+#'     all likelihoods
 #' @export
 #'
 #' @examples
@@ -282,18 +177,21 @@ copyto <- function (origin, fromdir, todir, neworigin = NA) {
 summarizeSS3 <- function(replist) {  # replist=plotreport
    likes <- replist$likelihoods_used
    param <- replist$parameters
-   M <- param["NatM_p_1_Fem_GP_1","Value"]
+   M <- param["NatM_uniform_Fem_GP_1","Value"] #NatM_p_1_Fem_GP_1
    steep <- param["SR_BH_steep","Value"]
    sigR <- param["SR_sigmaR","Value"]
+   maxgrad <- replist$maximum_gradient_component
    pickp <- which((param[,"Pr_type"] != "dev") & (param[,"Phase"] > 0))
    param2 <- param[pickp,c("Value","Init","Prior","Pr_type","Phase","Min","Max")]
    answer <- c(round(replist$endyr),replist$current_depletion,replist$SBzero,
                (1-replist$last_years_SPR),M,steep,sigR,
                likes["TOTAL",1],likes["Survey",1],likes["Length_comp",1],
-               likes["Age_comp",1],likes["Recruitment",1],likes["Parm_priors",1])
+               likes["Age_comp",1],likes["Recruitment",1],likes["Parm_priors",1],
+               maxgrad)
    names(answer) <-  c("EndYear","Depletion","Bzero","1-SPR","M","h","sigmaR","TotalL","Index",
-                       "LengthCompL","AgeCompL","Recruit","Param_Priors")
-   return(list(answer=answer,param=param2))
+                       "LengthCompL","AgeCompL","Recruit","Param_Priors",
+                       "Maximum_Gradient")
+   return(list(answer=answer,param=param2,likes=likes))
 }
 
 

@@ -4,7 +4,7 @@
 \alias{runSS3}
 \title{runSS3 - calls SS3 -nohess twice, then SS3 to calculate the hessian}
 \usage{
-runSS3(wkdir, exec = "SS3", calcdir = "calc/")
+runSS3(wkdir, exec = "SS", calcdir = "calc/")
 }
 \arguments{
 \item{wkdir}{\itemize{
@@ -12,7 +12,7 @@ runSS3(wkdir, exec = "SS3", calcdir = "calc/")
 }}
 
 \item{exec}{the name of the executable within the calc subdirectory to use
-with the particular set of SS files}
+with the particular set of SS files, default='SS'}
 
 \item{calcdir}{\itemize{
 \item the directory in which all calculations occur; defaults to

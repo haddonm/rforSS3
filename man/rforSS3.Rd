@@ -3,6 +3,7 @@
 \docType{package}
 \name{rforSS3}
 \alias{rforSS3}
+\alias{rforSS3-package}
 \title{rforSS3 functions to facilitate using Stock Synthesis}
 \description{
 The rforSS3 package provides a selection of functions needed
@@ -58,3 +59,15 @@ to the 'calc' directory and once finished copying the results back again.
 }
 }
 
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://www.github.com/haddonm/rforSS3}
+}
+
+}
+\author{
+\strong{Maintainer}: Malcolm Haddon \email{malcolm.haddon@gmail.com} (\href{https://orcid.org/0000-0001-6971-7585}{ORCID})
+
+}
+\keyword{internal}

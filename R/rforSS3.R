@@ -42,6 +42,8 @@
 #' }
 #' @docType package
 #' @name rforSS3
+#' @keywords internal
+"_PACKAGE"
 NULL
 
 

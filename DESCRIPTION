@@ -8,19 +8,19 @@ Description: Stock Synthesis 3 is excellent software for an array of alternative
 URL: https://www.github.com/haddonm/rforSS3
 Depends: R (>= 3.5.0)    
 Version: 0.0.0.9000
-Authors@R: 
-    person(given = "Malcolm",
-           family = "Haddon",
-           role = c("aut", "cre"),
-           email = "malcolm.haddon@gmail.com")
+Authors@R: person(given="Malcolm",
+                  family="Haddon", 
+                  email = "malcolm.haddon@gmail.com", 
+                  role = c("aut", "cre"),
+                  comment=c(ORCID="0000-0001-6971-7585"))
 Maintainer: Malcolm Haddon <malcolm.haddon@gmail.com>    
 License: GPL (>= 3)
-Imports: rutilsMH,
-         makehtml
+Imports: r4ss
 Suggests: 
     knitr,
     rmarkdown         
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.3
+VignetteBuilder: knitr

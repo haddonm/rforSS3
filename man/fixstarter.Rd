@@ -4,7 +4,7 @@
 \alias{fixstarter}
 \title{fixstarter - saves a new starter.ss file ready to use the par file}
 \usage{
-fixstarter(directory, toscreen = FALSE)
+fixstarter(directory, findtext = "use init value", toscreen = FALSE)
 }
 \arguments{
 \item{directory}{\itemize{
