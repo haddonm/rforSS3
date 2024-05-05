@@ -1,43 +1,4 @@
 
-#' @title cleanDir - removes any previous analyses and plots stored in 'SubDir'
-#'
-#' @description cleanDir -  removes any previous analyses and plots stored in
-#'    'SubDir'. Apart from the plot directory and contents it also removes
-#'    checkup.sso, CompReport.sso, covar.sso, CumReport.sso,
-#'    echoinput.sso, Forecast-report.sso, ParmTrace.sso, Report.sso,
-#'    SIS_table.sso, warning.sso, ss3.cor, ss3.std, ss3.rep, 1rundetails.txt,
-#'    2rundetails.txt, and 3rundetails.txt.  if the files are missing a warning
-#'    is given, which can be ignored. If they are presnet lots of TRUEs will
-#'    be printed.
-#' @param Dir - the storage directory containing the subdirectories for each of
-#'    the bridging analyses.
-#' @param SubDir - the bridging analysis subdirectory under consideration
-#' @return The files listed under description are removed from 'SubDir';
-#' @export cleanDir
-#' @examples
-#' \dontrun{
-#' # Dir <- store; SubDir <- "basecase"
-#' print("An example has still to be written")
-#' }
-cleanDir <- function(Dir,SubDir) {
-   delfiles <- c("CompReport.sso","covar.sso","CumReport.sso",
-                 "echoinput.sso","Forecast-report.sso","ParmTrace.sso",
-                 "Report.sso","SIS_table.sso","warning.sso","ss.cor","ss.std",
-                 "ss.rep")
-   targetpath <- pathtopath(Dir,SubDir)
-   removefiles <- pathtopath(targetpath,delfiles)
-   numfiles <- length(removefiles)
-   for (i in 1:numfiles) {
-      if (file.exists(removefiles[i])) {
-         file.remove(removefiles[i])
-      } else {
-         cat(paste0(delfiles[i],"  is not present  \n"))
-      }
-   }
-   targetpath <- pathtopath(targetpath,"plots")
-   file.remove(dir(targetpath,full.names=TRUE))
-}  # end of cleanDir
-
 
 #' @title codeBlock - delineate some comment lines ready to document code
 #'
@@ -78,24 +39,24 @@ codeBlock <- function(rows=2) {
 #' print("An example has still to be written")
 #' }
 copyfiles <- function(x,origin,destination) {
-   postfix <- c(".ctl",".dat",".for",".sta",".par")
-   outfile <- c("ss.ctl","ss.dat","forecast.ss","starter.ss","ss.par")
-   numfix <- length(postfix)
-   fileexist <- numeric(numfix)
-   for (fil in 1:numfix) {
-      filename <- paste0(origin,x,"/",x,postfix[fil])
-      if (file.exists(filename)) {
-         fileout <- paste0(destination,outfile[fil])
-         file.copy(filename,fileout,overwrite=TRUE,copy.date=FALSE)
-         fileexist[fil] <- 1
-      }
-   }
-   if (sum(fileexist) != numfix) {
-      pick <- which(fileexist == 0)
-      label <- paste0("Missing file: ",
-                      paste0(origin,x,"/",x,postfix[pick]),"\n")
-      warning(label)
-   }
+  postfix <- c(".ctl",".dat",".for",".sta",".par")
+  outfile <- c("ss.ctl","ss.dat","forecast.ss","starter.ss","ss.par")
+  numfix <- length(postfix)
+  fileexist <- numeric(numfix)
+  for (fil in 1:numfix) {
+    filename <- paste0(origin,x,"/",x,postfix[fil])
+    if (file.exists(filename)) {
+      fileout <- paste0(destination,outfile[fil])
+      file.copy(filename,fileout,overwrite=TRUE,copy.date=FALSE)
+      fileexist[fil] <- 1
+    }
+  }
+  if (sum(fileexist) != numfix) {
+    pick <- which(fileexist == 0)
+    label <- paste0("Missing file: ",
+                    paste0(origin,x,"/",x,postfix[pick]),"\n")
+    warning(label)
+  }
 } # end of copyfiles
 
 #' @title dirExists: Checks for the existence of a directory
@@ -294,25 +255,23 @@ getNum <- function(intxt,index=1) {
 
 #' @title getStatus - extract the values of B0 and Current Depletion
 #'
-#' @description getStatus - extracts the values of B0 and Current
-#'    Depletion from the analysis.txt file readin using readLines.
-#' @param txtlist - the list of character statements derived from
-#'    applyig readLines to the output file analysis.txt
-#' @return a vector of B0 and current Depltion
+#' @description getStatus extracts the values of all the likelihoods used, as
+#'    well as the B0 and Current Depletion. Best displayed with round(,7).
+#'    
+#' @param txtlist the output object from applying the SS_output function in SS3
+#' 
+#' @return a vector of all likelihoods, B0 and current depletion
 #' @export getStatus
+#' 
 #' @examples
-#' \dontrun{
-#' print("run an example and apply this to the output file")
-#' }
+#' print("run an example or load a plotreport file and apply this function")
 getStatus <- function(txtlist) {  # txtlist <- plotreport
-   index <- grep("SBzero",txtlist)
-   sprs <- txtlist[index][[1]]
-   Bzero <- sprs[1,"SSBZero"]
-   index <- grep("current_depletion",txtlist)
-   depl  <- getNum(txtlist[index+1],2)
-   ans <- c(Bzero,depl)
-   names(ans) <- c("B0","Depletion")
-   return(ans)
+  tmp <- plotreport$likelihoods_used
+  label <- rownames(tmp)
+  rbind(tmp,c(plotreport$SBzero,NA),c(plotreport$current_depletion,NA))
+  tmp1 <- rbind(tmp,c(plotreport$SBzero,NA),c(plotreport$current_depletion,NA))
+  rownames(tmp1) <- c(label,"SBzero","Current_Depl")
+  return(tmp1)
 }  # end of getStatus
 
 #' @title makeLabel: Convert a vector of numbers or strings into a single label
@@ -382,51 +341,6 @@ pathtype <- function(inpath) {
 } # end of pathtype
 
 
-
-#' @title runSS3 - calls SS3 -nohess twice, then SS3 to calculate the hessian
-#'
-#' @description runSS3 - this switches to /calc, sets up and calls SS3 -nohess,
-#'    then alters starter.ss to use the estimated .par file from the first run.
-#'    It recalls SS3 -nohess. Finally, it re-uses the new .par file in a call to
-#'    SS3, which also estimates the Hessian matrix. Finally it returns to the
-#'    working directory.
-#' @param wkdir - the full working directory eg fld2016
-#' @param exec the name of the executable within the calc subdirectory to use
-#'     with the particular set of SS files, default='SS'
-#' @param calcdir - the directory in which all calculations occur; defaults to
-#'    "calc/"
-#' @return conducts three separate SS3 runs for the input data. Sends messages
-#'    to the screen for each run. Generates numerous files in teh /calc directory.
-#' @export runSS3
-#' @examples
-#' \dontrun{
-#' print("Still need to develop a real example using included datasets")
-#' }
-runSS3 <- function(wkdir,exec="SS",calcdir="calc/") {
-   cat("\n")
-      cat("Switching to the calc directory and beginning the run. \n")
-      calc <- paste0(wkdir,calcdir)
-      setwd(calc)
-      command <- paste0(calc,exec,".exe -nohess")
-      command1 <- paste0(command," > ",paste0(calc,"1rundetails.txt"))
-      command2 <- paste0(command," > ",paste0(calc,"2rundetails.txt"))
-      shell(command1,wait=TRUE,invisible=T)
-      # modify the starter.ss file here to use the par file
-      cat("\n")
-      cat("End of first -nohess Run  \n")
-      fixstarter(calc,toscreen=F)
-      cat("starter.ss file modified to use the .par file \n\n")
-      shell(command2,wait=TRUE,invisible=T)
-      cat("\n  End of second -nohess Run  \n")
-      cat(" Final run, with Hessian generation \n\n")
-      command <- paste0(calc,exec,".exe")
-      command3 <- paste0(command," > ",paste0(calc,"3rundetails.txt"))
-      shell(command3,wait=TRUE,invisible=T)
-      setwd(wkdir)
-}  # end of runSS3
-
-
-
 #' @title removeEmpty - removes empty strings from a vector of strings
 #'
 #' @description removeEmpty - removes empty strings from a vector of strings
@@ -443,6 +357,67 @@ runSS3 <- function(wkdir,exec="SS",calcdir="calc/") {
 removeEmpty <- function(invect) {
    return(invect[nchar(invect) > 0])
 }
+
+#' @title sel24 implements SS3's selectivity pattern 24
+#' 
+#' @description sel24 uses 6 parameters and a set of mean size or age classes 
+#'     to calculate SS3's selectivity pattern 24, which is a double normal with 
+#'     a defined peak at 1.0, and tail controls, that is it has parameters for 
+#'     the selectivity of the initial and final size/age classes. There is an 
+#'     ascending limb and a descending limb with the potential of a plateau in 
+#'     between. The six parameters are 1) the age/size where selectivity first 
+#'     becomes 1.0, 2) the size/age where selectivity first begins to decline, 
+#'     3) the steepness or width of the ascending limb, 4) the steepness or
+#'     width of the descending limb, 5) the selectivity of the first age/size 
+#'     class, and 6) the selectivity of the last age/size class. The descending 
+#'     limb of any dome shaped selectivity curves imply that the fishing gear 
+#'     used is unable to collect all representatives of the larger or older 
+#'     classes. The predicted numbers of smaller or younger animals, that are 
+#'     only partially selected, are inflated because of the partial selection. 
+#'     If any larger or older animals are, in fact, caught, then the same 
+#'     inflation can happen to those animals as a result of the partial 
+#'     selection implied by the dome shape. Small and young animals weigh very 
+#'     little, the same cannot be said for the larger or older animals. Some 
+#'     people refer to the extra biomass this phenomenon can imply as 'ghost 
+#'     biomass', even though it might be real. Whatever the case, when using 
+#'     dome shaped selectivity it is best to be aware of this issue and to be 
+#'     cautious about how this is interpreted. A version of this function was
+#'     first developed for the MQMF package (Haddon, 2023).
+#'
+#' @param p a vector of six parameters.
+#' @param L a vector of the mean of nL age/size classes
+#'
+#' @return a vector of selectivity at length/age
+#' @export
+#' 
+#' @references Methot, R.D. and C.R, Wetzel (2013) Stock synthesis: A biological 
+#'     and statistical framework for fish stock assessment and fishery 
+#'     management. Supplementary material, Appendix A. Equs A1.30 onwards. 
+#'     \emph{Fisheries Research} 142:86-99.
+#'     
+#' @references Haddon M (2023). \emph{MQMF: Modelling and Quantitative Methods 
+#'     in Fisheries}. R package version 0.1.5,<https://github.com/haddonm/MQMF/>.
+#'
+#' @examples
+#'   L <- seq(180,410,1)
+#'   p <- p <- c(230,250,155,600,-5,1.5)
+#'   sel <- sel24(p,L)
+#'   plot(L,sel,type="l",xlab="Age",ylab="Selectivity",lwd=2)
+sel24 <- function(p,L) {
+  nL <- length(L)
+  comp1 <- 1/(1 + exp(-p[5]))
+  comp2 <- exp((-(L - p[1])^2)/p[3])
+  comp3 <- exp((-(L[1] - p[1])^2)/p[3])
+  asc <- comp1 + (1 - comp1) * ((comp2 - comp3)/(1 - comp3))
+  comp4 <- 1/(1 + exp(-p[6]))
+  comp5 <- exp((-(L - p[2])^2)/p[4])
+  comp6 <- exp((-(L[nL] - p[2])^2)/(p[4]-1))
+  dsc <- 1 + (comp4 - 1) * ((comp5 - 1)/(comp6 - 1))
+  J1 <- 1/(1 + exp(-(20*(L - p[1])/(1 + abs(L - p[1])))))
+  J2 <- 1/(1 + exp(-20*((L - p[2])/(1 + abs(L - p[2])))))
+  sel <- (asc * (1 - J1)) + J1 * (1 - J2 + dsc * J2)
+  return(sel)
+} # end of sel24
 
 
 #' @title summarySS3 pulls out summary information from report file
@@ -510,9 +485,7 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 storeresults <- function(origin,destination) {
    getfiles <- c("CompReport.sso","covar.sso","CumReport.sso",
                  "echoinput.sso","Forecast-report.sso","ParmTrace.sso",
-                 "Report.sso","SIS_table.sso","warning.sso","ss.ctl",
-                 "ss.dat","ss.par","ss.rep","ss.cor","ss.std",
-                 "forecast.ss","starter.ss","wtatage.ss_new",
+                 "Report.sso","SIS_table.sso","warning.sso","ss.par",
                  "control.ss_new","starter.ss_new")
    nfiles <- length(getfiles)
    for (fil in 1:nfiles) { # fil <- 1

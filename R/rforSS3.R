@@ -49,8 +49,9 @@ NULL
 #' @importFrom  r4ss SS_fitbiasramp SSMethod.TA1.8 SSMethod.Cond.TA1.8
 #' @importFrom grDevices dev.cur dev.new dev.off graphics.off png
 #' @import graphics
-#' @importFrom utils read.csv tail
-#' @importFrom codeutils pathtopath
+#' @importFrom utils read.csv tail askYesNo
+#' @importFrom codeutils pathtopath %ni%
+#' @importFrom hplot plotnull plotprep parset 
 NULL
 
 

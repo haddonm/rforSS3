@@ -7,20 +7,15 @@
 getStatus(txtlist)
 }
 \arguments{
-\item{txtlist}{\itemize{
-\item the list of character statements derived from
-applyig readLines to the output file analysis.txt
-}}
+\item{txtlist}{the output object from applying the SS_output function in SS3}
 }
 \value{
-a vector of B0 and current Depltion
+a vector of all likelihoods, B0 and current depletion
 }
 \description{
-getStatus - extracts the values of B0 and Current
-Depletion from the analysis.txt file readin using readLines.
+getStatus extracts the values of all the likelihoods used, as
+well as the B0 and Current Depletion. Best displayed with round(,7).
 }
 \examples{
-\dontrun{
-print("run an example and apply this to the output file")
-}
+print("run an example or load a plotreport file and apply this function")
 }
