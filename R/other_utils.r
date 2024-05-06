@@ -85,6 +85,44 @@ changePar <- function(newvalue,directory) {  # newvalue=9.0; directory=calc
   cat("New ",parfile,"  written \n")
 }  # end of changeParam
 
+#' @title getplotreports collets the plotreports and summaries into lists
+#' 
+#' @description getplotreports gathers the plotreports and the summarySS3
+#'      answers into a list containing a list of plotreports and a matrix of
+#'      summarySS3-answers. These can then be used when comparing the outputs
+#'      fromdifferent scenarios.
+#'
+#' @param store the directory containing the subdirectories of each of the 
+#'     scenarios  
+#' @param subdir a vector of subdirectories to be found in store, obtained
+#'     using dir(store)
+#' @param picksubdir a vector of the indicies of the subdirectories to include
+#'     into the comparisons.
+#'
+#' @return an invisible list containing a list of plotreports for each scenario
+#'     selected, as well as a matrix of summarySS3$answer vectors for each 
+#'     scenario
+#' @export
+#'
+#' @examples
+#' # syntxt used
+#' # replists <- getplotreports(store=store, subdir=subdir, picksubdir=c(3,6,7))
+getplotreports <- function(store,subdir,picksubdir) {
+  scenes <- subdir[picksubdir]
+  nscen <- length(scenes)
+  replists <- makelist(scenes)
+  summarySS3 <- NULL
+  for (i in 1:nscen) {
+    origin <- pathtopath(store,scenes[i])
+    filename <- pathtopath(origin,paste0("plotreport_",scenes[i],".Rdata"))
+    load(filename)
+    replists[[i]] <- plotreport
+    summarySS3 <- cbind(summarySS3,summarizeSS3(plotreport)$answer)
+  }
+  colnames(summarySS3) <- scenes
+  return(invisible(list(replists=replists,summarySS3=summarySS3)))
+} # end of getplotreports
+
 #' @title plotselex generates a plot of the selectivity used in SS3
 #' 
 #' @description plotselex provides an alternative plot of the selectivity 
@@ -139,6 +177,44 @@ plotselex <- function(plotreport,sex="Female",yrs=c(1984,2004,2016),upbound=0,
   }
   return(invisible(L50s))
 } # end of plotselex
+
+#' @title profilestarter gets the starter file ready for a likelihood-profile 
+#' 
+#' @description profilestarter reads in the starter.ss file from the calc 
+#'     directory - ensure that is the starter.ss for the scenario whose 
+#'     likelihood profile you want. It then changes the value of the two fields
+#'     init-values-src and prior-like to 1 rather than zero. If they are already
+#'     set to 1 this will remain the case.
+#' 
+#'
+#' @param calc the directory defined as the one in which the SS3 calculaitons
+#'     will occur
+#' @param findtext a vector containing identifying text for the required two 
+#'     lines in the starter file. If they are not c("init_values_src",
+#'     "prior_like"), then, obviously, you should alter 'findtext' to reflect
+#'     whatever text you have put there.
+#' @param verbose should progress be sent to the console? default = FALSE
+#'
+#' @return nothing but it does alter the contents of the starter.ss file
+#' @export
+#'
+#' @examples
+#' print("Wait on an example being prepared")
+profilestarter <- function(calc,findtext=c("init_values_src","prior_like"),
+                           verbose=FALSE) {
+  # calc=calc; findtext=c("init_values_src","prior_like"); verbose=TRUE  
+  startfile <- pathtopath(calc,"starter.ss")
+  starter <- readLines(con = startfile)
+  pickP <- grep(findtext[1],starter,fixed=TRUE)
+  cutstart <- substr(starter[pickP[1]],2,nchar(starter[pickP[1]]))
+  starter[pickP] <- paste0("1",cutstart)
+  pickP2 <- grep(findtext[2],starter,fixed=TRUE)
+  cutstart2 <- substr(starter[pickP2[1]],2,nchar(starter[pickP2[1]]))
+  starter[pickP2] <- paste0("1",cutstart2)
+  if (verbose) print(starter)
+  write(starter,file=startfile)
+  if (verbose) cat("New ",startfile,"  written \n")
+} # end of profilestarter
 
 
 #' @title sscopyto copies the ctl, dat, par, sta, and for files to new directory

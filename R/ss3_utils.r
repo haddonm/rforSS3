@@ -471,8 +471,7 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 #'    files copied are: checkup.sso, CompReport.sso, covar.sso, CumReport.sso,
 #'    echoinput.sso, Forecast-report.sso, ParmTrace.sso, Report.sso,
 #'    SIS_table.sso, warning.sso, ss3.ctl, ss3.dat, ss3.par, ss3.rep, ss3.cor,
-#'    ss3.std, forecast.ss, starter.ss, 1rundetails.txt, 2rundetails.txt,
-#'    3rundetails.txt
+#'    ss3.std, forecast.ss, starter.ss
 #' @param origin - the directory from which the files are to be copied.
 #' @param destination - the directory into which the files are to be copied.
 #' @return The files listed under description are copied to the destination
@@ -485,7 +484,7 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 storeresults <- function(origin,destination) {
    getfiles <- c("CompReport.sso","covar.sso","CumReport.sso",
                  "echoinput.sso","Forecast-report.sso","ParmTrace.sso",
-                 "Report.sso","SIS_table.sso","warning.sso","ss.par",
+                 "Report.sso","SIS_table.sso","warning.sso","ss3.par","ss.par",
                  "control.ss_new","starter.ss_new")
    nfiles <- length(getfiles)
    for (fil in 1:nfiles) { # fil <- 1

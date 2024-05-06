@@ -26,8 +26,7 @@ generally be the directory from which the SS3 files were copied. The
 files copied are: checkup.sso, CompReport.sso, covar.sso, CumReport.sso,
 echoinput.sso, Forecast-report.sso, ParmTrace.sso, Report.sso,
 SIS_table.sso, warning.sso, ss3.ctl, ss3.dat, ss3.par, ss3.rep, ss3.cor,
-ss3.std, forecast.ss, starter.ss, 1rundetails.txt, 2rundetails.txt,
-3rundetails.txt
+ss3.std, forecast.ss, starter.ss
 }
 \examples{
 \dontrun{
