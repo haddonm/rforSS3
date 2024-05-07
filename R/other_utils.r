@@ -114,6 +114,7 @@ getplotreports <- function(store,subdir,picksubdir) {
   summarySS3 <- NULL
   for (i in 1:nscen) {
     origin <- pathtopath(store,scenes[i])
+    plotreport <- NULL
     filename <- pathtopath(origin,paste0("plotreport_",scenes[i],".Rdata"))
     load(filename)
     replists[[i]] <- plotreport
@@ -122,6 +123,33 @@ getplotreports <- function(store,subdir,picksubdir) {
   colnames(summarySS3) <- scenes
   return(invisible(list(replists=replists,summarySS3=summarySS3)))
 } # end of getplotreports
+
+#' @title getL50 estimates the L50 from a selectivity vector
+#' 
+#' @description getL50 searches for the value cloest to the L50 when given a
+#'     vector of selectivity at size or age
+#'
+#' @param x a vector of selectivity values whose names are the lengths or ages
+#'     with which they are associated. The names are necessary for this function
+#'     to work.
+#'
+#' @return a single value defining the L50
+#' @export
+#'
+#' @examples
+#' print("Wait on an example")
+getL50 <- function(x) {
+  leng <- as.numeric(names(x))
+  near <- which.closest(0.5,x)
+  near1 <- ifelse((x[near] < 0.5),near+1,near-1)
+  index <- sort(c(near,near1))
+  downup <- leng[index]
+  spanlen <- downup[2] - downup[1]
+  span <- x[index[2]] - x[index[1]]
+  diff <- x[index[2]] - 0.5
+  L50 <- leng[index[2]] - (diff/span) * spanlen
+  return(L50)
+} # end of getL50
 
 #' @title plotselex generates a plot of the selectivity used in SS3
 #' 
@@ -133,6 +161,10 @@ getplotreports <- function(store,subdir,picksubdir) {
 #'     running an SS3 scenario
 #' @param sex which gender should be plotted (should eb Female or Male)
 #' @param yrs a single or vector of years to be plotted
+#' @param upbound the upper bound of the plot, which can be used to remove
+#'     extra or unwanted size classes that are all set to 1.0
+#' @param legendcex the font size fot eh legend default = 1.1
+#' @param labelcex the font size for the labels and legend default 1.5
 #'
 #' @return It generates a plot and returns, invisibly, a vector of L50 values
 #'     for each estimated selectivity curve

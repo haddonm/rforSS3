@@ -50,7 +50,7 @@ NULL
 #' @importFrom grDevices dev.cur dev.new dev.off graphics.off png
 #' @import graphics
 #' @importFrom utils read.csv tail askYesNo
-#' @importFrom codeutils pathtopath %ni%
+#' @importFrom codeutils pathtopath %ni% makelist which.closest
 #' @importFrom hplot plotnull plotprep parset 
 NULL
 

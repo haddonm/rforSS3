@@ -40,7 +40,7 @@ codeBlock <- function(rows=2) {
 #' }
 copyfiles <- function(x,origin,destination) {
   postfix <- c(".ctl",".dat",".for",".sta",".par")
-  outfile <- c("ss.ctl","ss.dat","forecast.ss","starter.ss","ss.par")
+  outfile <- c("ss.ctl","ss.dat","forecast.ss","starter.ss","ss3.par")
   numfix <- length(postfix)
   fileexist <- numeric(numfix)
   for (fil in 1:numfix) {
@@ -128,8 +128,10 @@ firstNum <- function(intxt) {
 #'    par file. This entails reading in the current starter.ss file, finding
 #'    the line with 'use init value' in it, changing the number at the start
 #'    from 0 to 1, and resaving the file.
-#' @param directory - the calculation directory in which starter.ss can be found
-#' @param toscreen - defaults to FALSE, meaning no information is sent to the
+#' @param directory the calculation directory in which starter.ss can be found
+#' @param findtext the text that identifies the line in starter.ss that 
+#'     contains the line that needs modification.
+#' @param toscreen defaults to FALSE, meaning no information is sent to the
 #'    screen when this function is called.
 #' @return starter.ss is modified so that ss3 will use the previously
 #'    estimated par file as the starting point in the estimation
@@ -266,10 +268,10 @@ getNum <- function(intxt,index=1) {
 #' @examples
 #' print("run an example or load a plotreport file and apply this function")
 getStatus <- function(txtlist) {  # txtlist <- plotreport
-  tmp <- plotreport$likelihoods_used
+  tmp <- txtlist$likelihoods_used
   label <- rownames(tmp)
-  rbind(tmp,c(plotreport$SBzero,NA),c(plotreport$current_depletion,NA))
-  tmp1 <- rbind(tmp,c(plotreport$SBzero,NA),c(plotreport$current_depletion,NA))
+  rbind(tmp,c(txtlist$SBzero,NA),c(txtlist$current_depletion,NA))
+  tmp1 <- rbind(tmp,c(txtlist$SBzero,NA),c(txtlist$current_depletion,NA))
   rownames(tmp1) <- c(label,"SBzero","Current_Depl")
   return(tmp1)
 }  # end of getStatus
@@ -470,7 +472,7 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 #'    generally be the directory from which the SS3 files were copied. The
 #'    files copied are: checkup.sso, CompReport.sso, covar.sso, CumReport.sso,
 #'    echoinput.sso, Forecast-report.sso, ParmTrace.sso, Report.sso,
-#'    SIS_table.sso, warning.sso, ss3.ctl, ss3.dat, ss3.par, ss3.rep, ss3.cor,
+#'    SIS_table.sso, warning.sso, ss3.ctl, ss3.dat, ss3.par,
 #'    ss3.std, forecast.ss, starter.ss
 #' @param origin - the directory from which the files are to be copied.
 #' @param destination - the directory into which the files are to be copied.
@@ -484,7 +486,7 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 storeresults <- function(origin,destination) {
    getfiles <- c("CompReport.sso","covar.sso","CumReport.sso",
                  "echoinput.sso","Forecast-report.sso","ParmTrace.sso",
-                 "Report.sso","SIS_table.sso","warning.sso","ss3.par","ss.par",
+                 "Report.sso","SIS_table.sso","warning.sso","ss3.par","ss3.std",
                  "control.ss_new","starter.ss_new")
    nfiles <- length(getfiles)
    for (fil in 1:nfiles) { # fil <- 1

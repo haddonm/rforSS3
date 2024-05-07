@@ -7,14 +7,13 @@
 fixstarter(directory, findtext = "use init value", toscreen = FALSE)
 }
 \arguments{
-\item{directory}{\itemize{
-\item the calculation directory in which starter.ss can be found
-}}
+\item{directory}{the calculation directory in which starter.ss can be found}
 
-\item{toscreen}{\itemize{
-\item defaults to FALSE, meaning no information is sent to the
-screen when this function is called.
-}}
+\item{findtext}{the text that identifies the line in starter.ss that
+contains the line that needs modification.}
+
+\item{toscreen}{defaults to FALSE, meaning no information is sent to the
+screen when this function is called.}
 }
 \value{
 starter.ss is modified so that ss3 will use the previously

@@ -20,6 +20,13 @@ running an SS3 scenario}
 \item{sex}{which gender should be plotted (should eb Female or Male)}
 
 \item{yrs}{a single or vector of years to be plotted}
+
+\item{upbound}{the upper bound of the plot, which can be used to remove
+extra or unwanted size classes that are all set to 1.0}
+
+\item{legendcex}{the font size fot eh legend default = 1.1}
+
+\item{labelcex}{the font size for the labels and legend default 1.5}
 }
 \value{
 It generates a plot and returns, invisibly, a vector of L50 values
