@@ -2,8 +2,8 @@
 % Please edit documentation in R/rforSS3.R
 \docType{package}
 \name{rforSS3}
-\alias{rforSS3}
 \alias{rforSS3-package}
+\alias{rforSS3}
 \title{rforSS3 functions to facilitate using Stock Synthesis}
 \description{
 The rforSS3 package provides a selection of functions needed

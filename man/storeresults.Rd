@@ -4,7 +4,13 @@
 \alias{storeresults}
 \title{storeresults - Copies result files back into destination directory}
 \usage{
-storeresults(origin, destination)
+storeresults(
+  origin,
+  destination,
+  getfiles = c("CompReport.sso", "covar.sso", "CumReport.sso", "echoinput.sso",
+    "Forecast-report.sso", "ParmTrace.sso", "Report.sso", "SIS_table.sso", "warning.sso",
+    "ss3.par", "ss3.std", "control.ss_new", "starter.ss_new")
+)
 }
 \arguments{
 \item{origin}{\itemize{
@@ -14,22 +20,34 @@ storeresults(origin, destination)
 \item{destination}{\itemize{
 \item the directory into which the files are to be copied.
 }}
+
+\item{getfiles}{a vector of filenames to be retrieved from the origin
+directory (usually calc) and copied to the destination directory. The
+current files chosen are: CompReport.sso, covar.sso, CumReport.sso,
+echoinput.sso, Forecast-report.sso, ParmTrace.sso Report.sso,
+SIS_table.sso, warning.sso, ss3.par, ss3.std, control.ss_new, and
+starter.ss_new}
 }
 \value{
-The files listed under description are copied to the destination
-directory. If any are missing a warning is given
+The files listed under getfiles are copied from the origin to the
+destination directory. If any are missing a warning is given
 }
 \description{
 storeresults - Stores result files back into destination
 directory; the origin would usually be 'calc'and the destination would
-generally be the directory from which the SS3 files were copied. The
-files copied are: checkup.sso, CompReport.sso, covar.sso, CumReport.sso,
-echoinput.sso, Forecast-report.sso, ParmTrace.sso, Report.sso,
-SIS_table.sso, warning.sso, ss3.ctl, ss3.dat, ss3.par,
-ss3.std, forecast.ss, starter.ss
+generally be the directory from which the SS3 files were copied.
 }
 \examples{
 \dontrun{
-print("An example has still to be written")
+# typical syntax
+ store <- pathtopath(wkdir,"basecase/")  # define directories
+ calc <- pathtopath(wkdir,"calc/")
+ 
+ item <- 7    #  which scenario subdirectory inside basecase to be run
+ getCase(index=item,basecase) # this lists the basecase indices to the screen
+ analysis <- getCase(index=item,basecase)  # define analysis directory
+ destination <- pathtopath(store,analysis)
+ # run SS3
+ storeresults(calc,destination)
 }
 }

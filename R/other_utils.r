@@ -347,7 +347,7 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
    pickp <- which((param[,"Pr_type"] != "dev") & (param[,"Phase"] > 0))
    param2 <- param[pickp,c("Value","Init","Prior","Pr_type","Phase","Min","Max")]
    answer <- c(round(replist$endyr),replist$current_depletion,replist$SBzero,
-               (1-replist$last_years_SPR),M,steep,sigR,
+               (1-replist$sprseries[nrow(replist$sprseries),"SPR"]),M,steep,sigR,
                likes["TOTAL",1],likes["Survey",1],likes["Length_comp",1],
                likes["Age_comp",1],likes["Recruitment",1],likes["Parm_priors",1],
                likes["Forecast_Recruitment",1],maxgrad)
