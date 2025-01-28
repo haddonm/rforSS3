@@ -1,5 +1,59 @@
 
 
+#' @title getprojdyn tabulates the projected catches from a set of scenarios
+#' 
+#' @description getprojdyn is used to tabulate the projected catches, spawning
+#'     biomass depletion, spawning biomass, and estimated parameters from a
+#'     set of different scenarios within SS3. It requires the use of the 
+#'     function getreplists to aggregate the outputs from the different 
+#'     scenarios.
+#'
+#' @param compscenes the output from getreplist
+#' 
+#' @seealso{
+#'    \link{getreplists}
+#' } 
+#'
+#' @returns a list of projcatch, projdepl, projspawn, and parmscen - the 
+#'     estimated parameters from each scenario
+#' @export
+#'
+#' @examples
+#' # compscenes <- getreplists(store=store,
+#' #                           scenes=c("BC-5-5-1","BC-5-35-1","BC-5-5-75"),
+#' #                           listname="plotreport")
+#' # outproj <- getprojdyn(compscenes)
+getprojdyn <- function(compscenes) {
+  catches <- compscenes$catches
+  scenes <- names(catches)
+  nscen <- length(scenes)
+  scen1catch <- catches[[1]]
+  pickproj <- which(scen1catch$Era == "FORE")
+  pick1 <- pickproj[1]
+  projpick <- c((pick1-5):(pick1-1), pickproj)
+  numrow <- length(projpick)
+  yrs <- scen1catch[projpick,"year"]
+  columns <- c("year",scenes)
+  total <- compscenes$total
+  parm <- total[[1]]$parameters
+  pickparm <- which(parm[,"Phase"] > 0)
+  nparm <- length(pickparm)
+  parmscen <- matrix(0,nrow=nparm,ncol=nscen,
+                     dimnames=list(parm[pickparm,"Label"],scenes))
+  projcatch <- as.data.frame(matrix(nrow=numrow,ncol=length(columns),
+                                    dimnames=list(yrs,columns)))
+  projcatch[,1] <- yrs
+  projdepl <- projspawn <- projcatch
+  for (i in 1:nscen) {
+    projcatch[,i+1] <- catches[[i]]$TotalC[projpick]
+    projdepl[,i+1] <- catches[[i]]$Depletion[projpick]
+    projspawn[,i+1] <- catches[[i]]$SpawnB[projpick]
+    parmscen[,i] <- total[[i]]$parameters[pickparm,"Value"]
+  }
+  return(list(projcatch=projcatch,projdepl=projdepl,projspawn=projspawn,
+              parmscen=parmscen))
+} # getprojdyn
+
 #' @title getreplists loads a set of SS_output outputs into a set of lists
 #' 
 #' @description getreplists allows comparisons between alternative scenarios run
@@ -115,14 +169,16 @@ projectedcatches <- function(plotreport) {
 #' 
 #' @description plotreceffects generates a combined plot of SpawnB, Catches, 
 #'     Recruits, and spawning biomass depletion for all scenarios being 
-#'     compared.
+#'     compared. This assumes all scenarios have similar properties such as 
+#'     having teh same endyr.
 #'
 #' @param compscenes the output from getreplists, this is a list of three lists
 #'     the timeseries from each scenario's SS_output replist, the catches from
 #'     each scenario, and the total replist objects from each scenario for
 #'     further analyses. 
-#' @param rundir thye full path to the directory into which the output plot 
+#' @param rundir the full path to the directory into which the output plot 
 #'     should be saved if console = FALSE. The default = ""
+#' @param legcex default=1.25 but if there are many scenarios it should be less
 #' @param console default = TRUE, meaning the plot will be sent to the console
 #' 
 #' @seealso{
@@ -140,37 +196,44 @@ projectedcatches <- function(plotreport) {
 #' #             scenes=c("basecase_1","basecase_Rp7"),paths=NULL)
 #' # projout <- projreceffects(compscenes,rundir="",console=TRUE)
 #' # str(projout)
-projreceffects <- function(compscenes,rundir="",console=TRUE) {
+projreceffects <- function(compscenes,rundir="",legcex=1.25,console=TRUE) {
   catches <- compscenes$catches
   scenes <- names(catches)
   nscen <- length(catches)
   numrow <- nrow(catches[[1]])
   pickyrs <- 2:numrow  # omit the first row
-  yrs <- catches[[1]]$year[2:numrow]
+  allyrs <- catches[[1]]$year
+  yrs <- allyrs[pickyrs]
   nyrs <- length(yrs)
+  endyr <- compscenes$total[[1]]$endyr
   oldpar <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
   filen <- ""
   if (!console) {
-    nfile <- paste0("SS3_scenario_comparison.png")
+    nfile <- "SS3_scenario_comparison.png"
     filen <- pathtopath(rundir,nfile)
   }
   plotprep(width=10,height=9,newdev=TRUE,filename=filen,cex=1.0,verbose=FALSE)
   parset(plots=c(3,2),cex=1.0,margin=c(0.3,0.45,0.1,0.1),
          outmargin=c(1,0,0,0))
   spawnB <- sapply(catches,"[[","SpawnB")
+  rownames(spawnB) <- allyrs
   maxy <- getmax(spawnB[pickyrs])
   plot(yrs,spawnB[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Spawning Biomass",xlab="",panel.first=grid())
-  points(yrs[1],spawnB[1,1])
+  #points(yrs[1],spawnB[1,1])
   for (i in 2:nscen) lines(yrs,spawnB[pickyrs,i],lwd=2,col=i)
+  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   totalC <- sapply(catches,"[[","TotalC")
+  rownames(totalC) <- allyrs
   maxy <- getmax(totalC[pickyrs])
   plot(yrs,totalC[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Catch (t)",xlab="",panel.first=grid())
   for (i in 2:nscen) lines(yrs,totalC[pickyrs,i],lwd=2,col=i)
-  legend("bottomleft",legend=scenes,lwd=3,col=1:nscen,cex=1.25,bty="n") 
+  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
+  legend("bottomleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
   recruits <- sapply(catches,"[[","recruits")
+  rownames(recruits) <- allyrs
   projvals <- tail(recruits,1)
   maxy <- getmax(recruits[pickyrs])
   plot(yrs,recruits[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
@@ -180,11 +243,14 @@ projreceffects <- function(compscenes,rundir="",console=TRUE) {
     lines(yrs,recruits[pickyrs,i],lwd=2,col=i)
     lines(yrs,rep(projvals[i],nyrs),lwd=1,lty=2,col=i)
   }
+  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   depl <- sapply(catches,"[[","Depletion")
+  rownames(depl) <- allyrs
   maxy <- getmax(depl[pickyrs])
   plot(yrs,depl[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Spawning Biomass Depletion",xlab="",panel.first=grid())
   for (i in 2:nscen) lines(yrs,depl[pickyrs,i],lwd=2,col=i)
+  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   # plot instantaneous F rates
   total <- compscenes$total
   scenes <- names(total)
@@ -198,7 +264,8 @@ projreceffects <- function(compscenes,rundir="",console=TRUE) {
   plot(yrs,first[,"F_std"],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Overall Instantaneous F",xlab="",panel.first=grid())
   for (i in 2:nscen) lines(yrs,instF[[i]][,"F_std"],lwd=3,col=i)
-  legend("bottomleft",legend=scenes,lwd=3,col=1:nscen,cex=1.25,bty="n") 
+  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
+  legend("bottomleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
   # Plot individual fleet with maximum F
   numcol <- ncol(first)
   flnames <- colnames(first)
@@ -206,11 +273,12 @@ projreceffects <- function(compscenes,rundir="",console=TRUE) {
   pickFl <- which.max(fleetF) + 4
   Flmax <- flnames[pickFl]
   maxFL <- sapply(instF,"[[",Flmax)
+  rownames(maxFL) <- yrs
   maxy <- getmax(maxFL)
   plot(yrs,maxFL[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab=paste0("Fleet with Maximum F: ",Flmax),xlab="",panel.first=grid())
   for (i in 2:nscen) lines(yrs,maxFL[,i],lwd=2,col=i)
-  
+  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   mtext("Year",side=1,outer=TRUE,cex=1.2,line=-0.2)
   if (!console) dev.off()
   return(invisible(list(spawnB=spawnB,totalC=totalC,recruits=recruits,

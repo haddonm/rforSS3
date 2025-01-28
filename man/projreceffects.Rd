@@ -4,7 +4,7 @@
 \alias{projreceffects}
 \title{plotreceffects compares SpawnB, Catches, Recruits and depletion}
 \usage{
-projreceffects(compscenes, rundir = "", console = TRUE)
+projreceffects(compscenes, rundir = "", legcex = 1.25, console = TRUE)
 }
 \arguments{
 \item{compscenes}{the output from getreplists, this is a list of three lists
@@ -12,8 +12,10 @@ the timeseries from each scenario's SS_output replist, the catches from
 each scenario, and the total replist objects from each scenario for
 further analyses.}
 
-\item{rundir}{thye full path to the directory into which the output plot
+\item{rundir}{the full path to the directory into which the output plot
 should be saved if console = FALSE. The default = ""}
+
+\item{legcex}{default=1.25 but if there are many scenarios it should be less}
 
 \item{console}{default = TRUE, meaning the plot will be sent to the console}
 }
@@ -24,7 +26,8 @@ biomass depletion, standardized Instantenous F, and F from biggest Fleet
 \description{
 plotreceffects generates a combined plot of SpawnB, Catches,
 Recruits, and spawning biomass depletion for all scenarios being
-compared.
+compared. This assumes all scenarios have similar properties such as
+having teh same endyr.
 }
 \examples{
 # require(hplot)
