@@ -147,20 +147,18 @@ getreplists <- function(store,listname,scenes,paths=NULL) {
 #' }
 #'
 #' @returns A matrix of the catches including the projections, of spawnB, 
-#'     recruits, and depletion
+#'     recruits, depletion, total catches and ERA
 #' @export
 #'
 #' @examples
 #' # catches <- projectedcatches(plotreport=paste0(destination,"filename.Rdata"))
 projectedcatches <- function(plotreport) {
   fleets <- plotreport$FleetNames
-  nfleet <- length(fleets)
   timeseries <- plotreport$timeseries
   deadB <- grep("dead(B)",names(timeseries),fixed=TRUE)
-  findfleets <- unlist(strsplit(names(timeseries[deadB]),"_"))
-  whichfleets <- sort(suppressWarnings(as.numeric(findfleets)))
+  findfleets <-which(plotreport$fleet_type == 1)
   namecols <- c("year","SpawnB","recruits",
-                paste0("C(B)_",fleets[whichfleets]),"TotalC",
+                paste0("C(B)_",fleets[findfleets]),"TotalC",
                 "Depletion","ABC-Buffer","Era")
   columns <- c(2,7,8,deadB)
   ncatch <- length(deadB)
@@ -268,7 +266,8 @@ projreceffects <- function(compscenes,rundir="",legcex=1.25,startyr=2,
   scenes <- names(total)
   nscen <- length(scenes)
   instF <- makelist((scenes))
-  nfleet <- total[[1]]$nfleets
+  fleetF <- which(total[[1]]$fleet_type == 1)
+  nfleet <- length(fleetF)
   for ( i in 1:nscen) instF[[i]] <- total[[i]]$exploitation[,c(1,4:(6+nfleet))]
   first <- instF[[1]]
   allyrs <- first[,"Yr"]

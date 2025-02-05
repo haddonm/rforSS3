@@ -11,7 +11,7 @@ projectedcatches(plotreport)
 }
 \value{
 A matrix of the catches including the projections, of spawnB,
-recruits, and depletion
+recruits, depletion, total catches and ERA
 }
 \description{
 projectedcatches After fitting an optimal stock assessment
