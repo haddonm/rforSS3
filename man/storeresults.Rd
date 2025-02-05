@@ -7,9 +7,10 @@
 storeresults(
   origin,
   destination,
+  replaceCS = FALSE,
   getfiles = c("CompReport.sso", "covar.sso", "CumReport.sso", "echoinput.sso",
-    "Forecast-report.sso", "ParmTrace.sso", "Report.sso", "SIS_table.sso", "warning.sso",
-    "ss3.par", "ss3.std", "control.ss_new", "starter.ss_new")
+    "Forecast-report.sso", "Report.sso", "SIS_table.sso", "warning.sso", "ss3.par",
+    "ss3.std", "control.ss_new", "starter.ss_new")
 )
 }
 \arguments{
@@ -20,6 +21,10 @@ storeresults(
 \item{destination}{\itemize{
 \item the directory into which the files are to be copied.
 }}
+
+\item{replaceCS}{should the control and starter files be replaced by the
+SS3 generated control.ss_new and starter.ss_new files (this is useful
+if using the tune_comps function for iterstive re-weighting)}
 
 \item{getfiles}{a vector of filenames to be retrieved from the origin
 directory (usually calc) and copied to the destination directory. The
@@ -48,6 +53,11 @@ generally be the directory from which the SS3 files were copied.
  analysis <- getCase(index=item,basecase)  # define analysis directory
  destination <- pathtopath(store,analysis)
  # run SS3
- storeresults(calc,destination)
+ storeresults(calc,destination,replaceCS=FALSE)
+}
+}
+\seealso{
+{
+\link{tune_comps}
 }
 }

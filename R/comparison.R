@@ -78,7 +78,10 @@ getprojdyn <- function(compscenes) {
 #'     is required by both approaches for file loading as these names will be
 #'     used to label each scenario.
 #' @param paths default = NULL, meaning the rforSS3 approach will be used, which
-#'     requires only the scenes argument to contain information.
+#'     requires only the scenes argument to contain information. Otherwise, 
+#'     scenes can be NULL and paths should contain a character vector made up 
+#'     of the complete path and filename for each Rdata file stored wherever 
+#'     they are stored.
 #'      
 #' @seealso{
 #'   \link[r4ss]{SS_output}, \link{projectedcatches}, \link{projreceffects}
@@ -105,7 +108,6 @@ getreplists <- function(store,listname,scenes,paths=NULL) {
   dyn <- makelist(scenes)
   catches <- makelist(scenes)
   for (i in 1:nscen) {  # i = 1
-    
     if (is.null(paths)) {
       filen <- paste0(listname,"_",scenes[i],".Rdata")      
       pickdir <- pathtopath(store,scenes[i])
@@ -153,14 +155,20 @@ getreplists <- function(store,listname,scenes,paths=NULL) {
 projectedcatches <- function(plotreport) {
   fleets <- plotreport$FleetNames
   nfleet <- length(fleets)
-  namecols <- c("year","SpawnB","recruits",paste0("C(B)_",fleets),"TotalC",
+  timeseries <- plotreport$timeseries
+  deadB <- grep("dead(B)",names(timeseries),fixed=TRUE)
+  findfleets <- unlist(strsplit(names(timeseries[deadB]),"_"))
+  whichfleets <- sort(suppressWarnings(as.numeric(findfleets)))
+  namecols <- c("year","SpawnB","recruits",
+                paste0("C(B)_",fleets[whichfleets]),"TotalC",
                 "Depletion","ABC-Buffer","Era")
-  columns <- c(2,7,8,17,25,33,41,49)
-  catches <- plotreport$timeseries[,columns]
+  columns <- c(2,7,8,deadB)
+  ncatch <- length(deadB)
+  catches <- timeseries[,columns]
   depl=catches[,2]/catches[1,2]
-  abc <-  plotreport$timeseries[,"ABC_buffer"]
-  era <-  plotreport$timeseries[,"Era"]
-  catchall <- cbind(catches,rowSums(catches[,4:8]),depl,abc,era)
+  abc <-  timeseries[,"ABC_buffer"]
+  era <-  timeseries[,"Era"]
+  catchall <- cbind(catches,rowSums(catches[,4:(ncatch+3)]),depl,abc,era)
   colnames(catchall) <- namecols
   return(catchall)
 } # end of projectedcatches
@@ -179,6 +187,7 @@ projectedcatches <- function(plotreport) {
 #' @param rundir the full path to the directory into which the output plot 
 #'     should be saved if console = FALSE. The default = ""
 #' @param legcex default=1.25 but if there are many scenarios it should be less
+#' @param startyr in which year shouyld the plots start? default = 2
 #' @param console default = TRUE, meaning the plot will be sent to the console
 #' 
 #' @seealso{
@@ -196,12 +205,15 @@ projectedcatches <- function(plotreport) {
 #' #             scenes=c("basecase_1","basecase_Rp7"),paths=NULL)
 #' # projout <- projreceffects(compscenes,rundir="",console=TRUE)
 #' # str(projout)
-projreceffects <- function(compscenes,rundir="",legcex=1.25,console=TRUE) {
+projreceffects <- function(compscenes,rundir="",legcex=1.25,startyr=2,
+                           console=TRUE) {
+#  compscenes=compscenes; rundir="";legcex=1.0;console=TRUE; startyr=30
+  if (startyr < 2) startyr <- 2  # avoiding input error
   catches <- compscenes$catches
   scenes <- names(catches)
   nscen <- length(catches)
   numrow <- nrow(catches[[1]])
-  pickyrs <- 2:numrow  # omit the first row
+  pickyrs <- startyr:numrow  # omit the first row
   allyrs <- catches[[1]]$year
   yrs <- allyrs[pickyrs]
   nyrs <- length(yrs)
@@ -218,7 +230,7 @@ projreceffects <- function(compscenes,rundir="",legcex=1.25,console=TRUE) {
          outmargin=c(1,0,0,0))
   spawnB <- sapply(catches,"[[","SpawnB")
   rownames(spawnB) <- allyrs
-  maxy <- getmax(spawnB[pickyrs])
+  maxy <- getmax(spawnB[pickyrs,])
   plot(yrs,spawnB[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Spawning Biomass",xlab="",panel.first=grid())
   #points(yrs[1],spawnB[1,1])
@@ -226,7 +238,7 @@ projreceffects <- function(compscenes,rundir="",legcex=1.25,console=TRUE) {
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   totalC <- sapply(catches,"[[","TotalC")
   rownames(totalC) <- allyrs
-  maxy <- getmax(totalC[pickyrs])
+  maxy <- getmax(totalC[pickyrs,])
   plot(yrs,totalC[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Catch (t)",xlab="",panel.first=grid())
   for (i in 2:nscen) lines(yrs,totalC[pickyrs,i],lwd=2,col=i)
@@ -235,7 +247,7 @@ projreceffects <- function(compscenes,rundir="",legcex=1.25,console=TRUE) {
   recruits <- sapply(catches,"[[","recruits")
   rownames(recruits) <- allyrs
   projvals <- tail(recruits,1)
-  maxy <- getmax(recruits[pickyrs])
+  maxy <- getmax(recruits[pickyrs,])
   plot(yrs,recruits[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Recruits",xlab="",panel.first=grid())
   lines(yrs,rep(projvals[1],nyrs),lwd=1,lty=2,col=1)
@@ -246,7 +258,7 @@ projreceffects <- function(compscenes,rundir="",legcex=1.25,console=TRUE) {
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   depl <- sapply(catches,"[[","Depletion")
   rownames(depl) <- allyrs
-  maxy <- getmax(depl[pickyrs])
+  maxy <- getmax(depl[pickyrs,])
   plot(yrs,depl[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Spawning Biomass Depletion",xlab="",panel.first=grid())
   for (i in 2:nscen) lines(yrs,depl[pickyrs,i],lwd=2,col=i)
@@ -259,11 +271,15 @@ projreceffects <- function(compscenes,rundir="",legcex=1.25,console=TRUE) {
   nfleet <- total[[1]]$nfleets
   for ( i in 1:nscen) instF[[i]] <- total[[i]]$exploitation[,c(1,4:(6+nfleet))]
   first <- instF[[1]]
-  yrs <- first[,"Yr"]
-  maxy <- getmax(sapply(instF,"[[","F_std"))
-  plot(yrs,first[,"F_std"],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+  allyrs <- first[,"Yr"]
+  fnyrs <- length(allyrs)
+  pickfyrs <- (startyr-1):fnyrs 
+  yrs <- allyrs[pickfyrs]
+  Fstd <- sapply(instF,"[[","F_std")
+  maxy <- getmax(Fstd[pickfyrs,])
+  plot(yrs,first[pickfyrs,"F_std"],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Overall Instantaneous F",xlab="",panel.first=grid())
-  for (i in 2:nscen) lines(yrs,instF[[i]][,"F_std"],lwd=3,col=i)
+  for (i in 2:nscen) lines(yrs,instF[[i]][pickfyrs,"F_std"],lwd=3,col=i)
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   legend("bottomleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
   # Plot individual fleet with maximum F
@@ -273,11 +289,11 @@ projreceffects <- function(compscenes,rundir="",legcex=1.25,console=TRUE) {
   pickFl <- which.max(fleetF) + 4
   Flmax <- flnames[pickFl]
   maxFL <- sapply(instF,"[[",Flmax)
-  rownames(maxFL) <- yrs
-  maxy <- getmax(maxFL)
-  plot(yrs,maxFL[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+  rownames(maxFL) <- allyrs
+  maxy <- getmax(maxFL[pickfyrs,])
+  plot(yrs,maxFL[pickfyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab=paste0("Fleet with Maximum F: ",Flmax),xlab="",panel.first=grid())
-  for (i in 2:nscen) lines(yrs,maxFL[,i],lwd=2,col=i)
+  for (i in 2:nscen) lines(yrs,maxFL[pickfyrs,i],lwd=2,col=i)
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   mtext("Year",side=1,outer=TRUE,cex=1.2,line=-0.2)
   if (!console) dev.off()

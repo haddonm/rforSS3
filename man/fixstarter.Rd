@@ -27,5 +27,5 @@ from 0 to 1, and resaving the file.
 }
 \examples{
 print("An example has still to be written")
-# typical syntax  fixstarter(calc,findtext="init_values_src")
+# typical syntax  fixstarter(calc,findtext="use init value")
 }

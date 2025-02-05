@@ -138,7 +138,7 @@ firstNum <- function(intxt) {
 #' @export fixstarter
 #' @examples
 #' print("An example has still to be written")
-#' # typical syntax  fixstarter(calc,findtext="init_values_src")
+#' # typical syntax  fixstarter(calc,findtext="use init value")
 fixstarter <- function(directory,findtext="use init value",toscreen=FALSE) {
    startfile <- pathtopath(directory,"starter.ss")
    starter <- readLines(con = startfile)
@@ -473,12 +473,19 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 #'    
 #' @param origin - the directory from which the files are to be copied.
 #' @param destination - the directory into which the files are to be copied.
+#' @param replaceCS should the control and starter files be replaced by the
+#'     SS3 generated control.ss_new and starter.ss_new files (this is useful
+#'     if using the tune_comps function for iterstive re-weighting)
 #' @param getfiles a vector of filenames to be retrieved from the origin
 #'     directory (usually calc) and copied to the destination directory. The
 #'     current files chosen are: CompReport.sso, covar.sso, CumReport.sso,
 #'     echoinput.sso, Forecast-report.sso, ParmTrace.sso Report.sso, 
 #'     SIS_table.sso, warning.sso, ss3.par, ss3.std, control.ss_new, and
 #'     starter.ss_new
+#'     
+#' @seealso{
+#'     \link{tune_comps}
+#' }     
 #' 
 #' @return The files listed under getfiles are copied from the origin to the 
 #'     destination directory. If any are missing a warning is given
@@ -496,17 +503,14 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 #'  analysis <- getCase(index=item,basecase)  # define analysis directory
 #'  destination <- pathtopath(store,analysis)
 #'  # run SS3
-#'  storeresults(calc,destination)
+#'  storeresults(calc,destination,replaceCS=FALSE)
 #' }
-storeresults <- function(origin,destination,getfiles=c("CompReport.sso",
+storeresults <- function(origin,destination,replaceCS=FALSE,
+                         getfiles=c("CompReport.sso",
                          "covar.sso","CumReport.sso","echoinput.sso",
-                         "Forecast-report.sso","ParmTrace.sso","Report.sso",
+                         "Forecast-report.sso","Report.sso",
                          "SIS_table.sso","warning.sso","ss3.par","ss3.std",
                          "control.ss_new","starter.ss_new")) {
-   getfiles <- c("CompReport.sso","covar.sso","CumReport.sso",
-                 "echoinput.sso","Forecast-report.sso","ParmTrace.sso",
-                 "Report.sso","SIS_table.sso","warning.sso","ss3.par","ss3.std",
-                 "control.ss_new","starter.ss_new")
    nfiles <- length(getfiles)
    for (fil in 1:nfiles) { # fil <- 1
       x <- getfiles[fil]
@@ -517,6 +521,15 @@ storeresults <- function(origin,destination,getfiles=c("CompReport.sso",
       } else {
          warning(paste0(x,"  missing from 'calc'   \n"))
       }
+   }
+   if (replaceCS) {
+     analysis <- tail(unlist(strsplit(destination,split="/")),1)
+     fileout <- paste0(destination,analysis,".ctl")
+     filename <- pathtopath(origin,"control.ss_new")     
+     file.copy(filename,fileout,overwrite=TRUE,copy.date=FALSE)
+     fileout <- paste0(destination,analysis,".sta")
+     filename <- pathtopath(origin,"starter.ss_new")
+     file.copy(filename,fileout,overwrite=TRUE,copy.date=FALSE)
    }
 } # end of storeresults
 

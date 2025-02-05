@@ -19,7 +19,10 @@ is required by both approaches for file loading as these names will be
 used to label each scenario.}
 
 \item{paths}{default = NULL, meaning the rforSS3 approach will be used, which
-requires only the scenes argument to contain information.}
+requires only the scenes argument to contain information. Otherwise,
+scenes can be NULL and paths should contain a character vector made up
+of the complete path and filename for each Rdata file stored wherever
+they are stored.}
 }
 \value{
 a list of lists so for each scenario a list of the timeseries, of

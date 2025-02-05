@@ -4,7 +4,13 @@
 \alias{projreceffects}
 \title{plotreceffects compares SpawnB, Catches, Recruits and depletion}
 \usage{
-projreceffects(compscenes, rundir = "", legcex = 1.25, console = TRUE)
+projreceffects(
+  compscenes,
+  rundir = "",
+  legcex = 1.25,
+  startyr = 2,
+  console = TRUE
+)
 }
 \arguments{
 \item{compscenes}{the output from getreplists, this is a list of three lists
@@ -16,6 +22,8 @@ further analyses.}
 should be saved if console = FALSE. The default = ""}
 
 \item{legcex}{default=1.25 but if there are many scenarios it should be less}
+
+\item{startyr}{in which year shouyld the plots start? default = 2}
 
 \item{console}{default = TRUE, meaning the plot will be sent to the console}
 }
