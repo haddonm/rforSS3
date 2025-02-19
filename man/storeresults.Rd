@@ -10,7 +10,7 @@ storeresults(
   replaceCS = FALSE,
   getfiles = c("CompReport.sso", "covar.sso", "CumReport.sso", "echoinput.sso",
     "Forecast-report.sso", "Report.sso", "SIS_table.sso", "warning.sso", "ss3.par",
-    "ss3.std", "control.ss_new", "starter.ss_new")
+    "ss3.std", "ss.dat", "control.ss_new", "data_echo.ss_new", "starter.ss_new")
 )
 }
 \arguments{

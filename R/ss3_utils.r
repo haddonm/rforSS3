@@ -96,6 +96,36 @@ dirExists <- function(indir,create=TRUE) {
    }
 }  # end of dirExists
 
+#' @title endpart extracts the last part of an R path listing
+#' 
+#' @description endpart takes a path listing and extracts the final part. This
+#'     is used to find the subdirectory name into which an analysis is to be
+#'     placed, or could be used to find only the filename of a file at the end
+#'     of a long path. endpart automatically finds whether the user has '/'
+#'     or '\\\\' as the section separator.
+#'
+#' @param x a character vector of the path to a subdirectory or filename
+#'
+#' @returns the final character string - either a subdirectory or filename
+#' @export
+#'
+#' @examples
+#' first <- "C:/Users/public/Public Documents/first/"
+#' second <- "C:\\Users\\public\\Public Documents\\second"
+#' print(first)
+#' print(second)
+#' endpart(first)
+#' endpart(second)
+endpart <- function(x) {
+  tmp <- unlist(strsplit(x, ""))
+  use1 <- length(which(tmp == "/"))
+  if (use1 > 0) {
+    last <- tail(unlist(strsplit(x,split="/")),1)
+  } else {
+    last <- tail(unlist(strsplit(x,split="\\\\")),1)
+  }
+  return(last)
+} # end of endpart
 
 #' @title firstNum - converts the first string in a vector to a number
 #'
@@ -275,6 +305,45 @@ getStatus <- function(txtlist) {  # txtlist <- plotreport
   rownames(tmp1) <- c(label,"SBzero","Current_Depl")
   return(tmp1)
 }  # end of getStatus
+
+#' @title headtail presents the head and tail of a matrix, data.frame, or tibble
+#' 
+#' @description headtail is merely a utility function that displays both the
+#'     head and tail of a matrix or data.frame. It will translate a tibble into 
+#'     a data.frame but any other object will return its structure using the 
+#'     str(x, max.level=1) function. The head in the output is separated from 
+#'     its tail by two lines of dots.
+#'
+#' @param x a matrix or data.frame 
+#' @param n how many rows from the first and last to be displayed, default=5
+#' @param verbose should reports be made to the console
+#'
+#' @return a data.frame of 2 x n + 2 rows containing the head and tail of x
+#' @export
+#'
+#' @examples
+#' dat <- matrix(rnorm(100,mean=10,sd=1),nrow=25,ncol=4,dimnames=list(1:25,1:4))
+#' headtail(dat,5)
+#' dat <- list(dat=dat,numrow=nrow(dat),numcol=ncol(dat))
+#' headtail(dat,5)
+headtail <- function(x,n=5,verbose=TRUE) { # x = fltcatch;n =5
+  if (inherits(x,"tbl")) {
+    x <- as.data.frame(unclass(x), stringsAsFactors = FALSE,
+                       check.names=FALSE)
+    if (verbose) cat("Original object was a tibble \n") 
+  }  
+  if ((inherits(x,c("matrix","data.frame"))) & (length(dim(x) == 2))) {
+    numcol <- ncol(x)
+    rnames <- rownames(x)
+    if (is.null(rnames)) rnames <- 1:numrow
+    out <- as.data.frame(rbind(head(x,n),rep(".",numcol),rep(".",numcol),tail(x,n))) 
+    numrow <- nrow(x)
+    rownames(out) <- c(rnames[1:n],"a","b",rnames[(numrow-n+1):numrow])
+  } else {
+    out <- str(x,max.level = 1)
+  }
+  return(out)
+} # end of headtail
 
 #' @title makeLabel: Convert a vector of numbers or strings into a single label
 #'
@@ -510,7 +579,8 @@ storeresults <- function(origin,destination,replaceCS=FALSE,
                          "covar.sso","CumReport.sso","echoinput.sso",
                          "Forecast-report.sso","Report.sso",
                          "SIS_table.sso","warning.sso","ss3.par","ss3.std",
-                         "control.ss_new","starter.ss_new")) {
+                         "ss.dat",
+                         "control.ss_new","data_echo.ss_new","starter.ss_new")) {
    nfiles <- length(getfiles)
    for (fil in 1:nfiles) { # fil <- 1
       x <- getfiles[fil]

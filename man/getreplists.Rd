@@ -26,7 +26,8 @@ they are stored.}
 }
 \value{
 a list of lists so for each scenario a list of the timeseries, of
-the catches, and of the SS_output object in their entirety.
+the catches, of the SS_output object in their entirety and the output
+from summarizeSS3.
 }
 \description{
 getreplists allows comparisons between alternative scenarios run
