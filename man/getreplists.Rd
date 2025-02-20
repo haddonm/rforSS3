@@ -56,6 +56,6 @@ compared.
 }
 \seealso{
 {
-\link[r4ss]{SS_output}, \link{projectedcatches}, \link{projreceffects}
+\link[r4ss]{SS_output}, \link{projectedcatches}
 }
 }

@@ -33,6 +33,6 @@ function extracts the total catches
 }
 \seealso{
 {
-\link[r4ss]{SS_output}, \link{getreplists}, \link{projreceffects}
+\link[r4ss]{SS_output}, \link{getreplists}
 }
 }

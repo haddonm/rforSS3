@@ -285,8 +285,12 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
    sigR <- param["SR_sigmaR","Value"]
    maxgrad <- replist$maximum_gradient_component
    pickp <- which(param[,"Phase"] > 0)
-   columns <- c("Value","Init","Prior","Pr_type","Phase","Min","Max","Gradient")
+   columns <- c("Value","Init","Prior","Pr_type","Phase","Min","Max",
+                "Parm_StDev","Gradient")
    param2 <- param[pickp,columns]
+   param2 <- cbind(param2,CV=param2[,"Parm_StDev"]/param2[,"Value"])
+   colnames(param2) <- c("Value","Init","Prior","Pr_type","Phase","Min","Max",
+                         "Par_SD","Gradient","CV")
    answer <- c(round(replist$endyr),replist$current_depletion,replist$SBzero,
                (1-replist$sprseries[nrow(replist$sprseries),"SPR"]),M,steep,sigR,
                likes["TOTAL",1],likes["Survey",1],likes["Length_comp",1],
