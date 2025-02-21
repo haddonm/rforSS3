@@ -82,6 +82,7 @@ getprojdyn <- function(compscenes) {
 #'     scenes can be NULL and paths should contain a character vector made up 
 #'     of the complete path and filename for each Rdata file stored wherever 
 #'     they are stored.
+#' @param verbose default = TRUE warnings will be given
 #'      
 #' @seealso{
 #'   \link[r4ss]{SS_output}, \link{projectedcatches}
@@ -102,9 +103,9 @@ getprojdyn <- function(compscenes) {
 #' #                           scenes=c("basecase_1","basecase_Rp7"),
 #' #             paths=c("c:/afishsps/basecase_1/plotreport_basecase_1.Rdata",
 #' #                     "c:/afishsps/basecase_1/plotreport_basecase_Rp7.Rdata")
-getreplists <- function(store,listname,scenes,paths=NULL) {
+getreplists <- function(store,listname,scenes,paths=NULL,verbose=TRUE) {
   nscen <- length(scenes)
-  if (nscen == 1) warning("Only 1 scenario in getreplists \n")
+  if ((nscen == 1) & (verbose)) warning("Only 1 scenario in getreplists \n")
   total <- makelist(scenes)
   dyn <- makelist(scenes)
   catches <- makelist(scenes)

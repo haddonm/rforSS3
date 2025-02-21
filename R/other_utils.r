@@ -288,7 +288,7 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
    columns <- c("Value","Init","Prior","Pr_type","Phase","Min","Max",
                 "Parm_StDev","Gradient")
    param2 <- param[pickp,columns]
-   param2 <- cbind(param2,CV=param2[,"Parm_StDev"]/param2[,"Value"])
+   param2 <- cbind(param2,CV=abs(param2[,"Parm_StDev"]/param2[,"Value"]))
    colnames(param2) <- c("Value","Init","Prior","Pr_type","Phase","Min","Max",
                          "Par_SD","Gradient","CV")
    answer <- c(round(replist$endyr),replist$current_depletion,replist$SBzero,

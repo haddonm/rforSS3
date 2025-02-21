@@ -1,6 +1,6 @@
 Package: rforSS3
 Title: Functions to Facilitate Using Stock Synthesis 3
-Version: 0.0.13
+Version: 0.0.14
 Date: 2025-02-21
 Authors@R: person(given="Malcolm",
                   family="Haddon", 

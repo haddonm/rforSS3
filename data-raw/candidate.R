@@ -184,130 +184,47 @@ parreport <- summarizeSS3A(plotreport)$param
 parreport[pickP,]
 
 
-make_html <- function(replist=NULL,
-         rundir=NULL,
-         datadir=NULL,
-         controlfile=NULL,
-         datafile=NULL,
-         hsfile=NULL,
-         width=500,
-         openfile=TRUE,
-         runnotes=NULL,
-         verbose=TRUE,
-         packagename="mainpackage",
-         htmlname="htmlname") {
-  # Clarify data
-  if(is.null(rundir)) stop("input 'rundir' required \n")
-  write_css(rundir,htmlname)
-  filenames <- dir(rundir)
-  filetable <- filenames[grep("resultTable",filenames)]
-  if(length(filetable)==0) stop("No resultTable, something went wrong? \n")
-  filename <- filenametopath(rundir,filetable)
-  tablefile <- read.csv(filename,colClasses = "character")
-  if(!is.data.frame(tablefile))
-    stop("The list of files to output needs to be a data.frame \n")
-  tablefile$basename <- basename(as.character(tablefile$file))
-  tablefile$dirname <- rundir
-  # identify the categories and name each html file
-  categories <- unique(tablefile$category)  # html tab names
-  types <- tablefile$type   #  table or plot
-  for (icat in 0:length(categories)) { # icat=14
-    if(icat==0){
-      category <- "Home"
-      htmlfile <- paste0(rundir,"/",htmlname,".html")
-      htmlhome <- htmlfile
-      if(verbose) cat("Home HTML file with output will be:\n",htmlhome,'\n')
-    }  else{
-      category <- categories[icat]
-      htmlfile <- paste0(rundir,"/",htmlname,"_",category,".html")
-      if(verbose) cat("tab HTML file with output will be:\n",htmlfile,'\n')
-    }
-    write_head(htmlfile,htmlname)
-    cat('<body> \n',file=htmlfile, append=TRUE)
-    cat('<!-- Site navigation menu -->\n',
-        '  <ul id="tabnav">\n',file=htmlfile, append=TRUE)
-    for(itab in 0:length(categories)){
-      if(itab==0){
-        tab <- "Home"
-        cat('    <li class="tab1"><a href="',paste0(htmlname,".html"),
-            '">Home</a></li>\n',sep="", file=htmlfile, append=TRUE)
-      }else{
-        tab <- categories[itab]
-        cat('    <li class="tab',itab+1,'"><a href="',htmlname,'_',tab,'.html">',
-            tab,'</a></li>\n',sep="",file=htmlfile, append=TRUE)
-      }
-    }
-    cat('  </ul>\n', file=htmlfile, append=TRUE)
-    if (category=="Home") {    # add text on "Home" page
-      newcat <- "Run Details"
-      cat('\n\n<h2><a name="', category, '">', newcat, '</a></h2>\n', sep="",
-          file=htmlfile, append=TRUE)
-      MSE_info <- packageDescription(packagename)
-      goodnames <- c("Version", "Date", "Built", "Imports")
-      MSE_info_text <- paste0('<b>',packagename,':</b><br>\n')
-      for(name in goodnames) {
-        MSE_info_text <- c(MSE_info_text,
-                           paste0(name, ": ",MSE_info[name], "<br>\n"))
-      }
-      if (is.null(datadir)) datadir <- rundir
-      cat('\n\n<p>',MSE_info_text,'</p><br>\n',
-          '<b>Run directory  : </b>',rundir,'<br>\n',
-          '<b>Data directory: </b>',datadir,'<br>\n',
-          '<b>Control file: </b>',controlfile,'<br>\n',
-          '<b>Data file___: </b>',datafile,'<br>\n',
-          '<b>HS file_____: </b>',hsfile,'<br>\n',
-          '<b>Starting time of model: </b>',replist$starttime,'<br>\n',
-          '<b>Finish time of model   : </b>',replist$endtime,'<br>\n\n',
-          sep="",file=htmlfile, append=TRUE)
-      if (!is.null(runnotes)) {
-        cat('<p><b>Notes:</b>\n',file=htmlfile, append=TRUE)
-        for (i in 1:length(runnotes)) {
-          cat(runnotes[i],':<br>\n',file=htmlfile, append=TRUE)
-        }
-        cat('</p>\n\n',file=htmlfile, append=TRUE)
-      } # end of runnotes
-    } else {   # Other than Home tab split on category if statement
-      plotinfo <- tablefile[tablefile$category==category,]
-      cat('\n\n<h2><a name="', category, '">', category, '</a></h2>\n', sep="",
-          file=htmlfile, append=TRUE)
-      for(i in 1:nrow(plotinfo)){  # i=1
-        if (plotinfo$type[i] == "plot") {
-          cat("<p align=left><a href='", plotinfo$basename[i],
-              "'><img src='", plotinfo$basename[i],
-              "' border=0 width=", width, "></a><br>",
-              plotinfo$caption[i],
-              "<br><i>file: <a href='", plotinfo$basename[i],
-              "'>", plotinfo$basename[i], "</a></i></p>\n\n",
-              sep="",  file=htmlfile,  append=TRUE)
-        }
-        if (plotinfo$type[i] == "table") {
-          datafile <- filenametopath(rundir,plotinfo$basename[i])
-          dat <- read.csv(file=datafile,header=TRUE,row.names=1)
-          htmltable(inmat=dat,filename=htmlfile,caption=plotinfo$caption[i],
-                    basename=plotinfo$basename[i])
-        }
-        if (plotinfo$type[i] == "bigtable") {
-          datafile <- filenametopath(rundir,plotinfo$basename[i])
-          dat <- read.csv(file=datafile,header=TRUE,row.names=1)
-          htmltable(inmat=dat,filename=htmlfile,caption=plotinfo$caption[i],
-                    basename=plotinfo$basename[i],big=TRUE)
-        }
-        if (plotinfo$type[i] == "txtobj") {
-          datafile <- filenametopath(rundir,plotinfo$basename[i])
-          txt <- readLines(datafile)
-          nlines <- length(txt)
-          cat('<br><br> \n',file=htmlfile,append=TRUE)
-          cat('<p>NOTE: </p>\n',file=htmlfile,append=TRUE)
-          for (i in 1:nlines) {
-            cat('<p>',txt[i],'</p>\n',file=htmlfile,append=TRUE)
-          }
-        }
-      }
-    } # end of category if else statement
-    
-    cat("\n\n</body>\n</html>", file=htmlfile, append=TRUE)
-  } # end of icat loop
-  # open HTML file automatically:
-  if(openfile) browseURL(htmlhome)
-}
+
+
+
+
+
+
+filename <- paste0(analysis,"_estimated_parameters_no_Devs.csv")
+filename
+getfile <- pathtopath(extradir,filename)
+getfile
+
+file.exists(getfile)
+
+files <- dir(extradir)
+
+printV(files)
+
+getfile <- pathtopath(extradir,files[8])
+getfile
+
+file.exists(getfile)
+
+
+
+pardat <- read.csv(file=getfile,header=TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

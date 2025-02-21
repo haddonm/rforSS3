@@ -4,7 +4,7 @@
 \alias{getreplists}
 \title{getreplists loads a set of SS_output outputs into a set of lists}
 \usage{
-getreplists(store, listname, scenes, paths = NULL)
+getreplists(store, listname, scenes, paths = NULL, verbose = TRUE)
 }
 \arguments{
 \item{store}{is a directory that contains separate sub-directories for each
@@ -23,6 +23,8 @@ requires only the scenes argument to contain information. Otherwise,
 scenes can be NULL and paths should contain a character vector made up
 of the complete path and filename for each Rdata file stored wherever
 they are stored.}
+
+\item{verbose}{default = TRUE warnings will be given}
 }
 \value{
 a list of lists so for each scenario a list of the timeseries, of
