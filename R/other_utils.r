@@ -284,13 +284,19 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
    steep <- param["SR_BH_steep","Value"]
    sigR <- param["SR_sigmaR","Value"]
    maxgrad <- replist$maximum_gradient_component
+   pickF <- grep("ForeRecr",rownames(param))
+   param <- param[-pickF,]
    pickp <- which(param[,"Phase"] > 0)
-   columns <- c("Value","Init","Prior","Pr_type","Phase","Min","Max",
+   columns <- c("Num","Value","Init","Phase","Min","Max",
                 "Parm_StDev","Gradient")
    param2 <- param[pickp,columns]
    param2 <- cbind(param2,CV=abs(param2[,"Parm_StDev"]/param2[,"Value"]))
-   colnames(param2) <- c("Value","Init","Prior","Pr_type","Phase","Min","Max",
+   colnames(param2) <- c("Num","Value","Init","Phase","Min","Max",
                          "Par_SD","Gradient","CV")
+   param3 <- param2[order(param2[,"Phase"]),]
+   pickN <- which(param[,"Phase"] < 0)
+   columns <- c("Num","Value","Init","Phase","Min","Max")
+   noestpars <- param[pickN,columns]
    answer <- c(round(replist$endyr),replist$current_depletion,replist$SBzero,
                (1-replist$sprseries[nrow(replist$sprseries),"SPR"]),M,steep,sigR,
                likes["TOTAL",1],likes["Survey",1],likes["Length_comp",1],
@@ -299,7 +305,7 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
    names(answer) <-  c("EndYear","Depletion","Bzero","1-SPR","M","h","sigmaR",
                        "TotalL","Index","LengthCompL","AgeCompL","Recruit",
                        "Param_Priors","Forecast_Recruitment","Maximum_Gradient")
-   return(list(answer=answer,param=param2,likes=likes))
-}
+   return(list(answer=answer,param=param3,likes=likes,noestpars=noestpars))
+} # end of summarizeSS3
 
 

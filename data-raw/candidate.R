@@ -80,12 +80,97 @@ getagecomp <- function(rundir,destination,analysis=NULL,filen=NULL,
   return(out)
 } # end of getagecomp
 
+library(hplot)
+library(codeutils)
 
-agecomp <- getagecomp(rundir=rundir,destination=destination,analysis=analysis,
+
+agecmop <- getagecomp(rundir="",destination=destination,analysis=analysis,
                       console=TRUE)
 
+sampsize <- plotreport$age_comp_fit_table[,c("Fleet","Yr","Sexes","Nsamp_in","Nsamp_adj","effN")]
+rownames(sampsize) <- 1:nrow(sampsize)
+sampsize
 
+yrs <- sampsize[,"Yr"]
+nyr <- length(yrs)
+
+
+
+store <- "c:/Users/malco/DropBox/A_CodeR/SA-SS3/garfish/"
+analysis <- "SGBC-5-4-80-6"
+destination <- pathtopath(store,analysis)
+load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))  
+
+ageprop80 <- getagecomps(plotreport)
+
+analysis <- "SGBC-5-4-100-43"
+destination <- pathtopath(store,analysis)
+load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))  
+
+ageprop43 <- getagecomps(plotreport)
+
+plotageprops(agecomp1=ageprop80,agecomp2=ageprop43,whichfleet=1,console=TRUE,rundir="") 
+
+# get adjusted proportions of catch at age by year 
+
+# aggregate catch by age-----------------
+
+agedbase <- plotreport$agedbase
+
+columns <- c(1,6,9,13,16,17,18,20,21,22)
+
+dbase <- agedbase
+
+Bins <- sort(unique(agedbase[["Bin"]]))
+nbins <- length(Bins)
+df <- data.frame(
+  Nsamp_adj = agedbase[["Nsamp_adj"]],
+  effN = agedbase[["effN"]],
+  obs = agedbase[["Obs"]] * agedbase[["Nsamp_adj"]],
+  exp = agedbase[["Exp"]] * agedbase[["Nsamp_adj"]]
+)
+agg <- aggregate(
+  x = df,
+  by = list(
+    bin = agedbase[["Bin"]], f = agedbase[["Fleet"]],
+    sex = agedbase[["Sex"]]
+  ),
+  FUN = sum
+)
+agg[["obs"]] <- agg[["obs"]] / agg[["Nsamp_adj"]]
+agg[["exp"]] <- agg[["exp"]] / agg[["Nsamp_adj"]]
+colnames(agg) <- c("Age","Fleet","Sex","Nsamp_adj","effN","Obs","Exp")
+agg
+
+
+scenarios=c("SGBC-5-4-100-6","SGBC-5-4-100-43")
 console=TRUE
+height=7
+agg1 <- agg
+agg2 <- NULL
+plotfleet=2
+fleetname="HNT"
+
+
+
+# end agg--------------------------------
+
+cbind(sampsize,femtot+maltot)
+
+pfem <- fem
+for (i in 1:nyr) pfem[,i] <- fem[,i]/femtot[i]
+          
+adjmult <- sampsize[,"Nsamp_adj"]/sampsize[,"Nsamp_in"]                                  
+adjfem <- fem
+for (i in 1:nyr) adjfem[,i] <- fem[,i] * adjmult[i]
+
+totadjF <- colSums(adjfem)
+padjfem <- fem
+for (i in 1:nyr) padjfem[,i] <- adjfem[,i]/totadjF[i]
+
+cbind(pfem[,1],padjfem[,1])
+
+femconsole=TRUE
 
 if (length(names(agecomp)) == 2) {
   agefemale <- agecomp$females
@@ -95,7 +180,7 @@ if (length(names(agecomp)) == 2) {
     femages <- agefemale[[fl]]
     exagefem <- expandcolumns(femages)
     label <- paste0("Female ages - Fleet ",namefleet[fl])
-    plotcompdata2(exagefem,analysis=analysis,ylabel=label,console=TRUE,
+    plotcompdata(exagefem,analysis=analysis,ylabel=label,console=TRUE,
                  outdir="",barcol="red",bordercol="black",horizline=0) 
   }
   agemale <- agecomp$males
@@ -104,7 +189,7 @@ if (length(names(agecomp)) == 2) {
     exagemal <- expandcolumns(mages)
     label <- paste0("Male ages - Fleet ",namefleet[fl])
     if (console) devAskNewPage(ask=TRUE)
-    plotcompdata2(exagemal,analysis=analysis,ylabel=label,console=TRUE,
+    plotcompdata(exagemal,analysis=analysis,ylabel=label,console=TRUE,
                  outdir="",barcol="red",bordercol="black",horizline=0) 
   }
 }
@@ -116,7 +201,7 @@ if ((length(names(agecomp)) == 1) & (names(agecomp) == "amixed")) {
     compages <- amixed[[fl]]
     exages <- expandcolumns(compages)
     label <- paste0("Male ages - Fleet ",namefleet[fl])
-    plotcompdata2(exages,analysis=analysis,ylabel=label,console=TRUE,
+    plotcompdata(exages,analysis=analysis,ylabel=label,console=TRUE,
                  outdir="",barcol="red",bordercol="black",horizline=0) 
     if (console) devAskNewPage(ask=TRUE)
   }
@@ -154,34 +239,7 @@ makeQuarto(rundir="C:/Users/malco/Dropbox/A_CodeR/SA-SS3/course/",
 
 
 
-
-
-summarizeSS3A <- function(replist) {  # replist=plotreport
-  likes <- replist$likelihoods_used
-  param <- replist$parameters
-  M <- param["NatM_uniform_Fem_GP_1","Value"] #NatM_p_1_Fem_GP_1
-  steep <- param["SR_BH_steep","Value"]
-  sigR <- param["SR_sigmaR","Value"]
-  maxgrad <- replist$maximum_gradient_component
-  pickp <- which(param[,"Phase"] > 0)
-  columns <- c("Value","Init","Prior","Pr_type","Phase","Min","Max","Gradient")
-  param2 <- param[pickp,columns]
-  answer <- c(round(replist$endyr),replist$current_depletion,replist$SBzero,
-              (1-replist$sprseries[nrow(replist$sprseries),"SPR"]),M,steep,sigR,
-              likes["TOTAL",1],likes["Survey",1],likes["Length_comp",1],
-              likes["Age_comp",1],likes["Recruitment",1],likes["Parm_priors",1],
-              likes["Forecast_Recruitment",1],maxgrad)
-  names(answer) <-  c("EndYear","Depletion","Bzero","1-SPR","M","h","sigmaR",
-                      "TotalL","Index","LengthCompL","AgeCompL","Recruit",
-                      "Param_Priors","Forecast_Recruitment","Maximum_Gradient")
-  return(list(answer=answer,param=param2,likes=likes))
-}
-
-
-parreport <- summarizeSS3A(plotreport)$param
-
-
-parreport[pickP,]
+#catches ---------------------
 
 
 
@@ -190,25 +248,11 @@ parreport[pickP,]
 
 
 
-filename <- paste0(analysis,"_estimated_parameters_no_Devs.csv")
-filename
-getfile <- pathtopath(extradir,filename)
-getfile
-
-file.exists(getfile)
-
-files <- dir(extradir)
-
-printV(files)
-
-getfile <- pathtopath(extradir,files[8])
-getfile
-
-file.exists(getfile)
 
 
 
-pardat <- read.csv(file=getfile,header=TRUE)
+
+
 
 
 
