@@ -35,5 +35,6 @@ replaced with SS3 ready for the SS3 software.
 \dontrun{
 # x <- analysis; origin <- store; destination=calc
 print("An example has still to be written")
+# x=analysis; origin=store; destination=calc
 }
 }

@@ -42,7 +42,10 @@ dirExists(extradir)
 load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))  
 
 
-  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
+  plotreport=plotreport;
+  extradir=extradir;
+  analysis=analysis; 
+  store=store  
   verbose=TRUE; compare=c("SGBC-S80-M5","SGBC-S80-M5-h6"); 
   paths=NULL
   

@@ -37,6 +37,7 @@ codeBlock <- function(rows=2) {
 #' \dontrun{
 #' # x <- analysis; origin <- store; destination=calc
 #' print("An example has still to be written")
+#' # x=analysis; origin=store; destination=calc
 #' }
 copyfiles <- function(x,origin,destination) {
   postfix <- c(".ctl",".dat",".for",".sta",".par")
@@ -44,9 +45,11 @@ copyfiles <- function(x,origin,destination) {
   numfix <- length(postfix)
   fileexist <- numeric(numfix)
   for (fil in 1:numfix) {
-    filename <- paste0(origin,x,"/",x,postfix[fil])
+    first <- pathtopath(origin,x)
+    second <- paste0(x,postfix[fil])
+    filename <- pathtopath(first,second)
     if (file.exists(filename)) {
-      fileout <- paste0(destination,outfile[fil])
+      fileout <- pathtopath(destination,outfile[fil])
       file.copy(filename,fileout,overwrite=TRUE,copy.date=FALSE)
       fileexist[fil] <- 1
     }
