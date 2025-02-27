@@ -242,14 +242,184 @@ makeQuarto(rundir="C:/Users/malco/Dropbox/A_CodeR/SA-SS3/course/",
 #catches ---------------------
 
 
+library(hplot)
+
+
+outlen <- getlenprops(plotreport=plotreport,timeblocks=c(1983,1988,1989,2008,2009,2023))
+
+plot1(agg[,"Bin"],agg[,"Obs"])
+
+
+
+plotaggage <- function(agg1,agg2=NULL,plotfleet=1,fleetname="",height=7,
+                       console=TRUE,rundir="",scenarios=c(1,2)) {
+  #  agg1=ageprop1$agg;agg2=ageprop2$agg;plotfleet=whichfleet;fleetname=flname;
+  #  height=4;console=TRUE;rundir=extradir;scenarios=compare
+  fleets <- sort(unique(agg1[,"Fleet"]))
+  nfleet <- length(fleets)
+  pickF <- which(agg1[,"Fleet"]==plotfleet)
+  aggF <- agg1[pickF,]
+  ages <- sort(unique(aggF[,"Age"]))
+  nages <- length(ages)
+  sex <- sort(unique(aggF[,"Sex"]))
+  nsex <- length(sex)
+  if (console) { filen="" } else {
+    scenes <- paste0(scenarios,collapse="_")
+    fileout <- paste0("Aggregated_",fleetname,"AgeComp_Fits_",scenes,"_",
+                      ".png")
+    filen <- pathtopath(rundir,fileout)
+  }
+  plotprep(width=8,height=height,newdev=FALSE,filename=filen,verbose=FALSE)
+  parset()
+  if (nsex == 1) {
+    prop1 <- aggF[,c("Obs","Exp")]
+    expprop2 <- NULL
+    agg2F <- NULL
+    maxy2 <- NA
+    if (!is.null(agg2)) {
+      pickF2 <- which(agg2[,"Fleet"]==plotfleet)
+      agg2F <- agg2[pickF2,]
+      expprop2 <- agg2F[,"Exp"]
+      maxy2 <- getmax(expprop2,mult=1.005)
+    }
+    maxy1 <- getmax(prop1,mult=1.005)
+    maxy <- max(c(maxy1,maxy2),na.rm=TRUE)
+    label <- paste0("Proportion for ",fleetname)
+    plot(x=ages,y=seq(0,maxy,length=nages),type="l",lwd=0,col=0,
+         xlab="Ages (Yrs)",ylab=label,panel.first=grid())
+    polygon(x=c(ages[1],ages,ages[nages],ages[1]),y=c(0,prop1[,1],0,0),
+            col="darkgrey") 
+    lines(ages,prop1[,1],lwd=2,col=1)
+    points(ages,prop1[,1],cex=1.5,pch=16)
+    lines(ages,prop1[,2],lwd=4,col=2)
+    if (!is.null(agg2)) lines(ages,expprop2,lwd=4,col=3)   
+    legend("topright",legend=scenarios,col=c(2,3),lwd=4,lty=c(1,1),
+           cex=1.5,bty="n")  
+  } else {
+    femprop1 <- aggF[aggF[,"Sex"]==1,c("Obs","Exp")]
+    malprop1 <- aggF[aggF[,"Sex"]==2,c("Obs","Exp")]
+    expprop2 <- NULL
+    agg2F <- NULL
+    if (!is.null(agg2)) {
+      pickF2 <- which(agg2[,"Fleet"]==plotfleet)
+      agg2F <- agg2[pickF2,]
+      expprop2 <- femprop1
+      expprop2[,1] <- agg2F[agg2F[,"Sex"]==1,"Exp"]
+      expprop2[,2] <- agg2F[agg2F[,"Sex"]==2,"Exp"]
+    }
+    maxy1 <- getmax(aggF[,c("Obs","Exp")],mult=1.005)
+    maxy2 <- NULL
+    if (!is.null(agg2F)) maxy2 <- getmax(expprop2,mult=1.005)
+    maxy <- max(maxy1,maxy2)
+    label <- paste0("Proportion for ",fleetname)
+    plot(x=ages,y=seq(-maxy,maxy,length=nages),type="l",lwd=0,col=0,
+         xlab="Ages (Yrs)",ylab=label,panel.first=grid())
+    polygon(x=c(ages[1],ages,ages[nages],ages[1]),y=c(0,femprop1[,1],0,0),
+            col="darkgrey") 
+    lines(ages,femprop1[,1],lwd=2,col=1)
+    points(ages,femprop1[,1],cex=1.5,pch=16)
+    lines(ages,femprop1[,2],lwd=4,col=2)
+    polygon(x=c(ages[1],ages,ages[nages],ages[1]),y=c(0,-malprop1[,1],0,0),
+            col="lightgrey") 
+    lines(ages,-malprop1[,1],lwd=2,col=1)
+    points(ages,-malprop1[,1],cex=1.5,pch=16)
+    lines(ages,-malprop1[,2],lwd=4,col=4)
+    if (!is.null(agg2F)) {
+      lines(ages,expprop2[,1],lwd=4,col=3,lty=2)
+      lines(ages,-expprop2[,2],lwd=4,col=5,lty=2)
+    }
+    leg <- NULL
+    for (i in 1:2) leg <- c(leg,paste0(scenarios[i],"_Female"),
+                            paste0(scenarios[i],"_Male"))
+    legend("topright",legend=leg,col=c(2,4,3,5),lwd=3,lty=c(1,1,2,2),
+           cex=1.5,bty="n")    
+  } # end of 2 sex loop
+  if (!console) dev.off()
+  return(invisible(filen))
+} # end of plotaggage
 
 
 
 
 
-
-
-
+do_compare <- function(compdir,store,compare,paths=NULL,verbose=TRUE) {
+    #   compare=c("SGBC-5-4-100-6","SGBC-5-4-100-43"); paths=NULL
+    setuphtml(compdir)
+    compscenes <- getreplists(store=store,scenes=compare,paths=paths,
+                              listname="plotreport")
+    filename <- "Comparison_of_scenarios.png"
+    projout <- projreceffects(compscenes=compscenes,fileout=filename,
+                              rundir=compdir,legcex=1.0,startyr=2,
+                              console=FALSE)
+    addplot(filen=filename,rundir=compdir,category="compare",
+            caption="Comparison of Scenarios.")
+    
+    outdepl <- tail(projout$depl,15)
+    filename <- "Comparison_Projection_year_depletion.csv"
+    addtable(outdepl,filen=filename,rundir=compdir,category="compare",
+             caption="Comparison of Final Years' delpetion levels.")
+    
+    outcat <- tail(projout$totalC,15)
+    filename <- "Comparison_Projected_catch_by_scenario.csv"
+    addtable(outcat,filen=filename,rundir=compdir,category="compare",
+             caption="Comparison of projected catch levels by scenario.")    
+    
+    # agecomp comparisons  
+    if (length(compscenes$total) > 2) {
+      warning("Ageproportions of only first two scenarios will be used \n")
+    }
+    fleetnames <- plotreport$FleetNames
+    ageprop1 <- getageprops(compscenes$total[[1]])
+    ageprop2 <- getageprops(compscenes$total[[2]])
+    agg <- ageprop1$agg
+    fleets <- sort(unique(agg[,"Fleet"]))
+    nfleet <- length(fleets)
+    for (fl in 1 : nfleet) { # fl = 1
+      whichfleet <- fleets[fl]
+      flname <- fleetnames[whichfleet]
+      filename <- plotaggage(agg1=ageprop1$agg,agg2=ageprop2$agg,
+                             plotfleet=whichfleet,fleetname=flname,
+                             console=FALSE,rundir=compdir,
+                             scenarios=compare)
+      addplot(filen=filename,rundir=compdir,category="compare",
+              caption=paste0("Comparison of Fit to Age Comps aggregated ",
+                             "by Year and ",flname,"."))    
+      
+      filename <- plotageprops(agecomp1=ageprop1,agecomp2=ageprop2,whichfleet=fl,
+                               console=FALSE,rundir=compdir,scenarios=compare) 
+      addplot(filen=filename,rundir=compdir,category="compare",
+              caption=paste0("Comparison of Fit to Age Comps in each year by ",
+                             flname))
+    }
+    
+    # further table of comparisons
+    if (nrow(compscenes$total[[1]]$parameters) == 
+        nrow(compscenes$total[[2]]$parameters)) {
+      outstats <- comparestats(compscenes)
+      
+      outans <- round(outstats$answer,7)
+      filename <- "Comparison_Model_output_scenario.csv"
+      addtable(outans,filen=filename,rundir=compdir,category="compare",
+               caption="Comparison of model output by scenario.")    
+      
+      outlik <- round(outstats$likes,6)
+      filename <- "Comparison_Model_Likelihoods_scenario.csv"
+      addtable(outlik,filen=filename,rundir=compdir,category="compare",
+               caption="Comparison of model Likelihoods by scenario.")    
+      
+      outpar <- round(outstats$param,6)
+      filename <- "Comparison_Model_paramters_scenario.csv"
+      addtable(outpar,filen=filename,rundir=compdir,category="compare",
+               caption="Comparison of model parameters by scenario.")       
+      
+      outmod <- round(outstats$models,3)
+      filename <- "Comparison_Model_structure_scenario.csv"
+      addtable(outmod,filen=filename,rundir=compdir,category="compare",
+               caption="Comparison of model structure by scenario.") 
+    }
+  
+  
+} # end of do_compare
 
 
 

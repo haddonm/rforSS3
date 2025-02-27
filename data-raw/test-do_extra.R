@@ -12,10 +12,10 @@ source(pathtopath(wdir,"ss3_utilities.R"))
 options("show.signif.stars"=FALSE,"stringsAsFactors"=FALSE,
         "max.print"=50000,"width"=240)
 
-store <- pathtopath(wdir,"garfish/")  # snapper  # Whiting  # garfish
+store <- pathtopath(wdir,"snapper/")  # snapper  # Whiting  # garfish
 calc <- pathtopath(wdir,"calc/")
 
-#file path
+
 pathSS3 <- "C:/Users/malco/Dropbox/A_CodeR/SA-SS3/calc/ss3.exe"
 pathSS3
 
@@ -25,7 +25,7 @@ pathSS3
 printV(basecase)
 
 # Run SS3 scenbario------------------------------------
-item <- 10
+item <- 4
 getCase(index=item,basecase)   # this lists the basecase indices to the screen
 
 #executable <- c("SS","SS","SS","SS","SS","SS","SS3","SS3")
@@ -46,7 +46,7 @@ load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))
   extradir=extradir;
   analysis=analysis; 
   store=store  
-  verbose=TRUE; compare=c("SGBC-S80-M5","SGBC-S80-M5-h6"); 
+  verbose=TRUE; compare=c("GSVBC-CE"); 
   paths=NULL
   
   
@@ -92,7 +92,7 @@ load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))
   addplot(filen=filename,rundir=extradir,category="selectivity",
           caption="Female selectivity for each time-block.")
   again <- grep("mixed",filename)
-  if (length(again) == 0) {
+  if (length(again) != 0) {
     filename <- plotselex(plotreport,sex="Male",upbound=0,
                           console=FALSE,rundir=extradir)
     addplot(filen=filename,rundir=extradir,category="selectivity",

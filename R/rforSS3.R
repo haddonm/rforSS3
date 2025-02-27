@@ -52,6 +52,7 @@ NULL
 #' @importFrom utils read.csv tail askYesNo str head
 #' @importFrom codeutils pathtopath %ni% makelist which.closest getmax
 #' @importFrom hplot plotnull plotprep parset 
+#' @importFrom stats loess qlnorm
 NULL
 
 

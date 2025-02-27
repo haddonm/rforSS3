@@ -1,4 +1,66 @@
 
+#' @title altcpueplot plots the fit to cpue and residuals for all fleets
+#' 
+#' @description altcpueplot generates a pair of plots for each fleet with cpue
+#'     data. The first is observed vs expected (the fit) and the second is an
+#'     explicit residual plot on a linear scale.
+#'
+#' @param cpue the plotreport$cpue object from r4ss
+#' @param analysis the name of the model scenario
+#' @param rundir the directory into which to place the plot if saved
+#' @param height the height of the plot, the default = 8, which suits 4 fleets.
+#'     if you have fewer then adjust this appropriately. If more than 5 then
+#'     external to the function it may be best to subset the cpue input data
+#'     and annotate the analysis argument to keep each plot separate. 
+#' @param CI default = TRUE confidence bounds will be plotted. 
+#' @param console default = TRUE so plot goes to console.
+#'
+#' @returns invisibly the filename, it also plots a graph
+#' @export
+#'
+#' @examples
+#' # syntax: 
+#' # extradir <- pathtopath(destination,"extra/")
+#' # filename <- altcpueplot(plotreport$cpue,analysis="SGBC-5-4-8-6",
+#' #                         rundir=extradir,height=8,CI=TRUE,console=TRUE)
+altcpueplot <- function(cpue,analysis,rundir,height=8,CI=TRUE,console=TRUE) { 
+  colnames(cpue) <- tolower(colnames(cpue))
+  fleets <- unique(cpue[,"fleet_name"])
+  nfleet <- length(fleets)
+  yrrange <- range(cpue[,"yr"])
+  if (console) { filen="" } else {
+    fileout <- paste0(analysis,"_CPUE_for_allfleets.png")
+    filen <- pathtopath(rundir,fileout)
+  }
+  plotprep(width=9,height=height,newdev=FALSE,filename=filen,verbose=FALSE)
+  parset(plots=c(nfleet,2),margin=c(0.25,0.4,0.05,0.1))
+  for (fl in 1:nfleet) { # fl = 1
+    dat <- cpue[cpue[,"fleet_name"]==fleets[fl],]
+    maxy <- getmax(dat[,c("obs","exp")])    
+    if (CI) {
+      lower <- qlnorm(.025,meanlog = log(dat[,"obs"]),sdlog = dat[,"se"])
+      upper <- qlnorm(.975,meanlog = log(dat[,"obs"]),sdlog = dat[,"se"])
+      maxy <- getmax(upper)
+    }
+    rown <- nrow(dat)
+    
+    plot(dat[,"yr"],dat[,"exp"],type="l",lwd=2,xlab="",ylab=fleets[fl],
+         ylim=c(0,maxy),xlim=c(yrrange[1],yrrange[2]),panel.first=grid())
+    points(dat[,"yr"],dat[,"obs"],pch=16,cex=1.0,col=2)
+    if (CI) {
+      arrows(x0=dat[,"yr"],y0=lower,x1=dat[,"yr"],y1=upper,
+             length=0.025,angle=90,col=1,lwd=1,code=3)
+    }
+    plot(dat[,"yr"],dat[,"dev"],type="p",pch=16,cex=1.0,xlab="",ylab="Deviate",
+         xlim=c(yrrange[1],yrrange[2]),panel.first=grid())
+    abline(h=0.0,lwd=1.0,col=1)
+    for (i in 1:rown) lines(c(dat[i,"yr"],dat[i,"yr"]),c(0.0,dat[i,"dev"]),lwd=1)
+  }
+  if (!console) dev.off()
+  return(invisible(filen))
+} # end of altcpueplot
+
+
 
 #' @title codeBlock - delineate some comment lines ready to document code
 #'
@@ -129,6 +191,39 @@ endpart <- function(x) {
   }
   return(last)
 } # end of endpart
+
+#' @title fillvector expands a vector of values for classes across known classes
+#' 
+#' @description fillvector given a vector of values for a series of, possibly
+#'     incomplete, classes, which could be size or age classes, and places the 
+#'     known values into the correct bins of the complete set of classes. Thus,
+#'     with ages 0:6 given a vector of numbers-at-age of 1=12,2=24,3=6, 4= 5,
+#'     fillvector would generate c(0,12,24,6,5,0,0)
+#'     
+#' @param x a vector of values each with the name of its respective class
+#' @param vals a vector of class values to check against the names of the x
+#'     vector. 
+#'
+#' @return a vector of length length(vals), containing the x values in the 
+#'     correct cells
+#' @export
+#'
+#' @examples
+#' x <- c(12,24,6,1)
+#' names(x) <- c("1","2","3","5")
+#' ageclasses <- 0:6
+#' fillvector(x=x,vals=ageclasses)
+fillvector <- function(x,vals) { # x=fems; vals = sizes
+  if (length(x) == length(vals)) {
+    return(x)
+  } else {
+    out <- numeric(length(vals))
+    names(out) <- vals
+    whichpos <- match(as.numeric(names(x)),vals)
+    out[whichpos] <- x
+    return(out)
+  }
+} # end of fillvector
 
 #' @title firstNum - converts the first string in a vector to a number
 #'
@@ -414,6 +509,54 @@ pathtype <- function(inpath) {
   return(typepath)
 } # end of pathtype
 
+#' @title plotss3catches generates a plot of catch by fleet and of total catch
+#' 
+#' @description plotss3catches generates a two-panel plot with catches-by-fleet
+#'     and total catches across all fleets, which also has a loess smoother 
+#'     imposed to assist in identifying any trends in total catch. 
+#'
+#' @param catches an output from getdatasets
+#' @param extradir the full path to the directory fof extra plots and tables
+#' @param analysis the name of the analysis or scenario whose catches are being 
+#'    plotted
+#' @param console should the plot go to the console or be saved as a png file
+#'     to the extradir
+#'
+#' @returns nothing but it does plot a graph
+#' @export
+#'
+#' @examples
+#' # typical syntax
+#' # plotss3catches(catches=catches, extradir=extradir,console=FALSE)
+plotss3catches <- function(catches,extradir,analysis,console=TRUE) {
+  #  catches=catches;extradir=extradir; console=TRUE
+  fleetnames <- colnames(catches)
+  nfleet <- length(fleetnames)
+  yrs <- as.numeric(rownames(catches))
+  nyr <- length(yrs)
+  totC <- rowSums(catches,na.rm=TRUE)
+  if (console) { filen="" } else {
+    fileout <- paste0(analysis,"_Reported_catches_for_",nfleet,"_fleets.png")
+    filen <- pathtopath(extradir,fileout)
+  }
+  plotprep(width=7,height=6,newdev=FALSE,filename=filen,verbose=FALSE)
+  parset(plots=c(2,1),cex=1.0,margin=c(0.3,0.45,0.1,0.1))
+  maxy <- getmax(catches)
+  plot(yrs,catches[,1],type="l",lwd=2,col=1,xlab="",
+       ylab="Catches (t) by Fleet",ylim=c(0,maxy),yaxs="i",panel.first=grid)
+  if (nfleet > 1) for (fl in 2:nfleet) lines(yrs,catches[,fl],lwd=2,col=fl)
+  legend("topright",legend=fleetnames,col=c(1:nfleet),lwd=3,bty="n",cex=1.0)
+  maxy2 <- getmax(totC)
+  curve <- loess(totC ~ c(1:nyr))
+  plot(yrs,totC,type="l",lwd=2,col=1,xlab="",ylim=c(0,maxy2),yaxs="i",
+       ylab="Total Catches (t) Across Fleets",panel.first=grid())
+  lines(yrs,curve$fitted,lwd=2,col=2)
+  if (!console) dev.off()
+  return(invisible(filen))
+} # end of plotss3catches
+
+
+
 
 #' @title removeEmpty - removes empty strings from a vector of strings
 #'
@@ -605,6 +748,56 @@ storeresults <- function(origin,destination,replaceCS=FALSE,
      file.copy(filename,fileout,overwrite=TRUE,copy.date=FALSE)
    }
 } # end of storeresults
+
+
+
+#' @title summarizeSS3 provides a set of summary statistics from SS_output
+#'
+#' @description summarizeSS3 provides a set of summary statistics from the
+#'     object generated by SS_output. The vector 'answer' contains the final
+#'     year, the final depletion, Bzero, 1-SPR, the total likelihood, and other
+#'     likelihoods. In addition, a matrix of parameters are output which
+#'     contains all estimated parameters = phase > 0 (including the recruitment 
+#'     deviates)
+#'
+#' @param replist the object generated by SS_output
+#'
+#' @return a list of results and estimated parameters, and all likelihoods
+#' @export
+#'
+#' @examples
+#' print("See the vignette for a worked example")
+summarizeSS3 <- function(replist) {  # replist=plotreport
+  likes <- replist$likelihoods_used
+  param <- replist$parameters
+  M <- param["NatM_uniform_Fem_GP_1","Value"] #NatM_p_1_Fem_GP_1
+  steep <- param["SR_BH_steep","Value"]
+  sigR <- param["SR_sigmaR","Value"]
+  maxgrad <- replist$maximum_gradient_component
+  pickF <- grep("ForeRecr",rownames(param))
+  param <- param[-pickF,]
+  pickp <- which(param[,"Phase"] > 0)
+  columns <- c("Num","Value","Init","Phase","Min","Max",
+               "Parm_StDev","Gradient")
+  param2 <- param[pickp,columns]
+  param2 <- cbind(param2,CV=abs(param2[,"Parm_StDev"]/param2[,"Value"]))
+  colnames(param2) <- c("Num","Value","Init","Phase","Min","Max",
+                        "Par_SD","Gradient","CV")
+  param3 <- param2[order(param2[,"Phase"]),]
+  pickN <- which(param[,"Phase"] < 0)
+  columns <- c("Num","Value","Init","Phase","Min","Max")
+  noestpars <- param[pickN,columns]
+  answer <- c(round(replist$endyr),replist$current_depletion,replist$SBzero,
+              (1-replist$sprseries[nrow(replist$sprseries),"SPR"]),M,steep,sigR,
+              likes["TOTAL",1],likes["Survey",1],likes["Length_comp",1],
+              likes["Age_comp",1],likes["Recruitment",1],likes["Parm_priors",1],
+              likes["Forecast_Recruitment",1],maxgrad)
+  names(answer) <-  c("EndYear","Depletion","Bzero","1-SPR","M","h","sigmaR",
+                      "TotalL","Index","LengthCompL","AgeCompL","Recruit",
+                      "Param_Priors","Forecast_Recruitment","Maximum_Gradient")
+  return(list(answer=answer,param=param3,likes=likes,noestpars=noestpars))
+} # end of summarizeSS3
+
 
 
 

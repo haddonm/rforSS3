@@ -105,8 +105,8 @@ getprojdyn <- function(compscenes) {
 #' #                     "c:/afishsps/basecase_1/plotreport_basecase_Rp7.Rdata")
 getreplists <- function(store,listname,scenes,paths=NULL,verbose=TRUE) {
   nscen <- length(scenes)
-  if ((nscen == 1) & (verbose)) warning("Only 1 scenario in getreplists \n")
-  total <- makelist(scenes)
+
+    total <- makelist(scenes)
   dyn <- makelist(scenes)
   catches <- makelist(scenes)
   scenesum <- makelist(scenes)
