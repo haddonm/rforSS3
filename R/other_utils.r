@@ -280,7 +280,8 @@ sscopyto <- function (origin, fromdir, todir, neworigin = NA) {
 summarizeSS3 <- function(replist) {  # replist=plotreport
    likes <- replist$likelihoods_used
    param <- replist$parameters
-   M <- param["NatM_uniform_Fem_GP_1","Value"] #NatM_p_1_Fem_GP_1
+
+      M <- param["NatM_uniform_Fem_GP_1","Value"] #NatM_p_1_Fem_GP_1
    steep <- param["SR_BH_steep","Value"]
    sigR <- param["SR_sigmaR","Value"]
    maxgrad <- replist$maximum_gradient_component

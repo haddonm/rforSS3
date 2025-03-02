@@ -1,7 +1,7 @@
 Package: rforSS3
 Title: Functions to Facilitate Using Stock Synthesis 3
-Version: 0.0.14
-Date: 2025-02-21
+Version: 0.0.15
+Date: 2025-03-03
 Authors@R: person(given="Malcolm",
                   family="Haddon", 
                   email = "malcolm.haddon@gmail.com", 
@@ -18,7 +18,8 @@ Depends: R (>= 3.5.0)
 License: GPL (>= 3)
 Imports: r4ss,
          codeutils,
-         hplot
+         hplot,
+         makehtml
 Suggests: 
     knitr,
     rmarkdown         

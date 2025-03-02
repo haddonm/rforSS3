@@ -279,6 +279,80 @@ fixstarter <- function(directory,findtext="use init value",toscreen=FALSE) {
    cat("New ",startfile,"  written \n")
 }  # end of projstarter
 
+#' @title getaggprops calculates the proportions at age aggregated across years
+#'
+#' @param plotreport the object output from SS_output
+#'
+#' @returns a list of the proportional distribution of ages in each year, the
+#'     expected proportions of ages in each year, and the aggregated proportions
+#'     of ages across years
+#' @export
+#'
+#' @examples
+#' print("Wait n example data")
+getageprops <- function(plotreport) {
+  agedbase <- plotreport$agedbase
+  fleets <- unique(agedbase[,"Fleet"])
+  nfleet <- length(fleets)
+  fleetnames <- plotreport$FleetNames[fleets]
+  sex <- unique(agedbase[,"Sex"])
+  nsex <- length(sex)
+  if (nsex > 1) sexes <- c("female","male") else sexes <- "mixed"
+  ages <- unique(agedbase[,"Bin"])
+  nages <- length(ages)
+  yrs <- unique(agedbase[,"Yr"])
+  nyr <- length(yrs)
+  propyr <- array(0,dim=c(nyr,nages,nsex,nfleet),
+                  dimnames=list(yrs,ages,sexes,fleetnames))
+  exppropyr <- propyr
+  for (yr in 1:nyr) {   # yr = 6; sx = 1; fl =1
+    for (sx in 1:nsex) {
+      for (fl in 1:nfleet) {
+        pick <- which((agedbase[,"Yr"] == yrs[yr]) & 
+                        (agedbase[,"Sex"] == sex[sx]) & 
+                        (agedbase[,"Fleet"] == fleets[fl]))
+        if (length(pick) == 0) {
+          propyr[yr,,sx,fl] <- rep(0,nages)
+          exppropyr[yr,,sx,fl] <- rep(0,nages)   
+        } else {
+          yrdat <- agedbase[pick,]
+          if (length(pick) < nages) {
+            pick <- match(yrdat[,"Bin"],ages) 
+            Exp <- obs <- rep(0,nages)
+            obs[pick] <- yrdat[,"Obs"]
+            Exp[pick] <- yrdat[,"Exp"]
+          } else {
+            obs <- yrdat[,"Obs"]
+            Exp <- yrdat[,"Exp"]
+          }
+          propyr[yr,,sx,fl] <- obs
+          exppropyr[yr,,sx,fl] <- Exp
+        }
+      }
+    }
+  }
+  Bins <- sort(unique(agedbase[["Bin"]]))
+  nbins <- length(Bins)
+  df <- data.frame(
+    Nsamp_adj = agedbase[["Nsamp_adj"]],
+    effN = agedbase[["effN"]],
+    obs = agedbase[["Obs"]] * agedbase[["Nsamp_adj"]],
+    exp = agedbase[["Exp"]] * agedbase[["Nsamp_adj"]]
+  )
+  agg <- aggregate(
+    x = df,
+    by = list(
+      bin = agedbase[["Bin"]], f = agedbase[["Fleet"]],
+      sex = agedbase[["Sex"]]
+    ),FUN = sum
+  )
+  agg[["obs"]] <- agg[["obs"]] / agg[["Nsamp_adj"]]
+  agg[["exp"]] <- agg[["exp"]] / agg[["Nsamp_adj"]]
+  colnames(agg) <- c("Age","Fleet","Sex","Nsamp_adj","effN","Obs","Exp")
+  # agg
+  return(list(propyr=propyr,exppropyr=exppropyr,agg=agg))
+} # end of getageprops
+
 # parse a single line to get the single number at the front but
 # to keep the text following a '#'
 # txtlist <- repout; index <- pickRec
@@ -335,6 +409,53 @@ getCase <- function(basecase,index=1,printout=TRUE) {
    if (printout) print(cbind(1:length(basecase),basecase),quote = FALSE)
    return(basecase[index])
 } # end of getCase
+
+#' @title getdatasets tabulates the data in a printer friendly fashion
+#' 
+#' @description getdatasets tabulates the data in a printer friendly fashion
+#'     so that this can be presented in appendices to enhance transparency.
+#'     Currently, it returns only the catches but this will be expanded in 
+#'     later versions.
+#'
+#' @param plotreport the output of SS_output     
+#' @param store the path to the directory within which the analysis is held
+#' @param analysis the name of the SS3 model being explored
+#' @param verbose Should warnings and progress be reported to the console?
+#'     default = TRUE.
+#'     
+#' @seealso{
+#'   \link{SS_readdat_3.30}, \link{SS_output}
+#' }
+#'
+#' @returns invisibly returns the catches by fleet in a matrix
+#' @export
+#'
+#' @examples
+#' # typical syntax
+#' # getdatasets(plotreport=plotreport,store=store,analysis=analysis,
+#' #             verbose=FALSE)
+getdatasets <- function(plotreport,store,analysis,verbose=TRUE) {
+  destination <- pathtopath(store,analysis)
+  datfile <- pathtopath(destination,paste0(analysis,".dat"))
+  indat <- SS_readdat_3.30(file=datfile,verbose=verbose)
+  catch <- indat$catch
+  pickpos <- which(catch[,"year"] > 0)
+  catch <- catch[pickpos,]
+  yrs <- sort(unique(catch[,"year"]))
+  nyr <- length(yrs)
+  fleetnames <- plotreport$FleetNames
+  nfleet <- length(fleetnames)
+  catches <- matrix(0,nrow=nyr,ncol=nfleet,dimnames=list(yrs,fleetnames))
+  for (i in 1:nfleet) { # i = 1
+    pickfleet <- which(catch[,"fleet"] == i)
+    if (length(pickfleet) > 0) {
+      flcatch <- catch[pickfleet,]
+      pickrow <- match(flcatch[,"year"],yrs)
+      catches[pickrow,i] <- flcatch[,"catch"]
+    }
+  }
+  return(invisible(catches))
+} # end of getdatasets
 
 #' @title getlast - parse a given line to get a text occurring after #
 #'
@@ -799,6 +920,168 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
 } # end of summarizeSS3
 
 
+
+
+#' @title get_tuning_table copied completely from r4ss currently not exported
+#' 
+#' @description get_tuning_table is a function copied directly from r4ss. For
+#'     some reason, it is not exported from r4ss! So to use it in a comparison
+#'     one needs to add r4ss::: at its call, which upsets the building 
+#'     process when compiling a package. This is a temporary fix and a request
+#'     will be made to the r4ss team to export the function (it seems like an
+#'     oversight).
+#'
+#' @param replist the output from SS_output
+#' @param fleets which fleets to extract tuning variance information
+#' @param option which tuning method to use, default = 'Francis', alternatives
+#'     include 'none', 'Francis', 'MI', or 'DI'  
+#' @param digits number of digits to round numbers to, default = 6
+#' @param write Write suggested tunings to a file 'suggested_tunings.ss',
+#'     default = FALSE
+#' @param verbose should comments and output be written to the console, 
+#'     default = TRUE
+#'
+#' @returns the tuning table
+#' @export
+#'
+#' @examples
+#' print("no example available")
+get_tuning_table <- function (replist, fleets, option, digits = 6, write = FALSE, 
+          verbose = TRUE) {
+  tuning_table <- data.frame(factor = integer(), fleet = integer(), 
+                             Var_adj = double(), Hash = character(), 
+                             Old_Var_adj = double(), 
+                             New_Francis = double(), New_MI = double(), 
+                             Francis_mult = double(), Francis_lo = double(),  
+                             Francis_hi = double(), MI_mult = double(), 
+                             Type = character(), Name = character(), 
+                             Note = character(), stringsAsFactors = FALSE)
+  for (type in c("len", "age", "size")) {
+    for (fleet in fleets) {
+      if (verbose) {
+        message("calculating ", type, " tunings for fleet ", 
+                fleet)
+      }
+      if (type == "len") {
+        tunetable <- replist[["Length_Comp_Fit_Summary"]]
+        factor <- 4
+        has_marginal <- fleet %in% replist[["lendbase"]][["Fleet"]]
+        has_conditional <- FALSE
+      }
+      if (type == "age") {
+        tunetable <- replist[["Age_Comp_Fit_Summary"]]
+        factor <- 5
+        has_marginal <- fleet %in% replist[["agedbase"]][["Fleet"]]
+        has_conditional <- fleet %in% replist[["condbase"]][["Fleet"]]
+      }
+      if (type == "size") {
+        tunetable <- replist[["Size_Comp_Fit_Summary"]]
+        factor <- 7
+        has_marginal <- fleet %in% replist[["sizedbase"]][["Fleet"]]
+        has_conditional <- FALSE
+      }
+      if (has_marginal & has_conditional) {
+        warning("fleet", fleet, "has both conditional ages and marginal ages", 
+                "\ntuning will be based on conditional ages")
+      }
+      if (has_marginal | has_conditional) {
+        Francis_mult <- NULL
+        Francis_lo <- NULL
+        Francis_hi <- NULL
+        Francis_output <- SSMethod.TA1.8(fit = replist, 
+                                         type = type, fleet = fleet, plotit = FALSE, 
+                                         printit = FALSE)
+        if (has_conditional) {
+          Francis_output <- SSMethod.Cond.TA1.8(fit = replist, 
+                                                fleet = fleet, plotit = FALSE, printit = FALSE)
+        }
+        Francis_mult <- Francis_output[1]
+        Francis_lo <- Francis_output[2]
+        Francis_hi <- Francis_output[3]
+        Note <- ""
+        if (is.null(Francis_output)) {
+          Francis_mult <- NA
+          Francis_lo <- NA
+          Francis_hi <- NA
+          Note <- "No Francis weight"
+        }
+        Curr_Var_Adj <- NA
+        if ("Curr_Var_Adj" %in% names(tunetable)) {
+          Curr_Var_Adj <- tunetable[["Curr_Var_Adj"]][tunetable[["Fleet"]] == 
+                                                        fleet]
+        }
+        if ("Var_Adj" %in% names(tunetable)) {
+          Curr_Var_Adj <- tunetable[["Var_Adj"]][tunetable[["Fleet"]] == 
+                                                   fleet]
+        }
+        if (is.na(Curr_Var_Adj)) {
+          stop("Model output missing required values, perhaps due to an older version of SS3")
+        }
+        MI_mult <- NA
+        if ("HarMean(effN)/mean(inputN*Adj)" %in% names(tunetable)) {
+          MI_mult <- tunetable$"HarMean(effN)/mean(inputN*Adj)"[tunetable[["Fleet"]] == 
+                                                                  fleet]
+        }
+        if ("MeaneffN/MeaninputN" %in% names(tunetable)) {
+          MI_mult <- tunetable$"MeaneffN/MeaninputN"[tunetable[["Fleet"]] == 
+                                                       fleet]
+        }
+        if ("factor" %in% names(tunetable)) {
+          MI_mult <- tunetable[["Recommend_var_adj"]][tunetable[["Fleet"]] == 
+                                                        fleet]/tunetable[["Curr_Var_Adj"]][tunetable[["Fleet"]] == 
+                                                                                             fleet]
+        }
+        if (all(c("HarMean", "mean_Nsamp_adj") %in% names(tunetable))) {
+          MI_mult <- tunetable[["HarMean"]][tunetable[["Fleet"]] == 
+                                              fleet]/tunetable[["mean_Nsamp_adj"]][tunetable[["Fleet"]] == 
+                                                                                     fleet]
+        }
+        if (is.na(MI_mult)) {
+          stop("Model output missing required values, perhaps due to an older version of SS3")
+        }
+        newrow <- data.frame(factor = factor, fleet = fleet, 
+                             New_Var_adj = NA, hash = "#", Old_Var_adj = round(Curr_Var_Adj, 
+                                                                               digits), New_Francis = round(Curr_Var_Adj * 
+                                                                                                              Francis_mult, digits), New_MI = round(Curr_Var_Adj * 
+                                                                                                                                                      MI_mult, digits), Francis_mult = round(Francis_mult, 
+                                                                                                                                                                                             digits), Francis_lo = round(Francis_lo, digits), 
+                             Francis_hi = round(Francis_hi, digits), MI_mult = round(MI_mult, 
+                                                                                     digits), Type = type, Name = replist[["FleetNames"]][fleet], 
+                             Note = Note, stringsAsFactors = FALSE)
+        tuning_table <- rbind(tuning_table, newrow)
+      }
+    }
+  }
+  if (option == "none") {
+    tuning_table[["New_Var_adj"]] <- tuning_table[["Old_Var_adj"]]
+  }
+  if (option == "Francis") {
+    tuning_table[["New_Var_adj"]] <- tuning_table[["New_Francis"]]
+    NAvals <- is.na(tuning_table[["New_Var_adj"]])
+    tuning_table[["New_Var_adj"]][NAvals] <- tuning_table[["New_MI"]][NAvals]
+    tuning_table[["Note"]][NAvals] <- paste0(tuning_table[["Note"]][NAvals], 
+                                             "--using MI value")
+  }
+  if (option == "MI") {
+    tuning_table[["New_Var_adj"]] <- tuning_table[["New_MI"]]
+  }
+  names(tuning_table)[1] <- "#factor"
+  rownames(tuning_table) <- 1:nrow(tuning_table)
+  tunetable_size <- replist[["Size_Comp_Fit_Summary"]]
+  if (!is.null(tunetable_size) && "par1" %in% names(tunetable_size)) {
+    warning("This function may not work for generalized size composition data ", 
+            "in models prior to SS3 version 3.30.20.")
+  }
+  if (write) {
+    file <- file.path(replist[["inputs"]][["dir"]], "suggested_tuning.ss")
+    if (verbose) {
+      message("writing to file ", file)
+    }
+    write.table(tuning_table, file = file, quote = FALSE, 
+                row.names = FALSE)
+  }
+  return(tuning_table)
+} # end of get_tuning_table
 
 
 
