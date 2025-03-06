@@ -53,30 +53,28 @@ load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))
 
   
   
+  #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
+  #  verbose=TRUE; compare=c("SGBC-S70-M5","SGBC-S75-M5","SGBC-S80-M5","SGBC-S100-M5"); paths=NULL;
   setuphtml(extradir)
   # tables tab-------------------------------
-  answer <- round(printV(summarizeSS3(plotreport)$answer),6)
+  outsummary <- summarizeSS3(plotreport)
+  answer <- round(printV(outsummary$answer),6)
   filename <- paste0(analysis,"_summary_answer.csv")
   addtable(answer,filen=filename,rundir=extradir,category="tables",
            caption=paste0(analysis,"_Quick summary of model outputs."))
-  paramreport <- plotreport$parameters
-  pickF <- grep("ForeRecr",rownames(paramreport))
-  paramreport <- paramreport[-pickF,]
-  pickP <- which((paramreport[,"Pr_type"] != "dev") & 
-                   (paramreport[,"Phase"] > 0)) 
-  columns <- c(1,3,5,6,7,8,9,11)
+  param <- outsummary$param
+  pickP <- grep("Main_RecrDev",rownames(param)) 
   filename <- paste0(analysis,"_estimated-parameters_no_Devs.csv")
-  addtable(paramreport[pickP,columns],filen=filename,rundir=extradir,category="tables",
+  addtable(param[-pickP,],filen=filename,rundir=extradir,category="tables",
            caption=paste0(analysis,"_main estimated parameters without the",
                           "recruitment deviates."))
   filename <- paste0(analysis,"_all-estimated-parameters.csv")
-  allparam <- paramreport[,columns]
-  allpos <- allparam[which(allparam[,"Phase"] > 0),]
-  allneg <- allparam[which(allparam[,"Phase"] < 0),]
-  sallparam <- allpos[order(allpos[,"Phase"]),]
-  sallparam <- rbind(sallparam,allneg)
-  addtable(sallparam,filen=filename,rundir=extradir,category="tables",
-           caption=paste0(analysis,"_all parameters estimated and otherwise."))
+  addtable(param,filen=filename,rundir=extradir,category="tables",
+           caption=paste0(analysis,"_all estimated parameters sorted by Phase."))
+  filename <- paste0(analysis,"_all-NOTestimated-parameters.csv")
+  addtable(outsummary$noestpars,filen=filename,rundir=extradir,
+           category="tables",caption=paste0(analysis,
+                                            "_all estimated parameters sorted by Phase."))
   #summary tab --------
   compscenes <- getreplists(store=store,scenes=analysis,listname="plotreport",
                             verbose=FALSE)
@@ -89,10 +87,17 @@ load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))
   # selectivity Tab-------
   filename <- plotselex(plotreport,sex="Female",upbound=0,
                         console=FALSE,rundir=extradir)
+  mixsex <- FALSE
+  if (length(grep("mixed",filename))) {
+    mixsex <- TRUE
+    capt <- "Mixed selectivity for each time-block."
+  } else {
+    capt <- "Female selectivity for each time-block."
+  }
   addplot(filen=filename,rundir=extradir,category="selectivity",
-          caption="Female selectivity for each time-block.")
+          caption=capt)
   again <- grep("mixed",filename)
-  if (length(again) != 0) {
+  if (!mixsex) {
     filename <- plotselex(plotreport,sex="Male",upbound=0,
                           console=FALSE,rundir=extradir)
     addplot(filen=filename,rundir=extradir,category="selectivity",
@@ -104,9 +109,26 @@ load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))
                           rundir=extradir,height=8,CI=TRUE,console=FALSE)
   addplot(filen=filename,rundir=extradir,category="CPUE",
           caption="Alternative CPUE plot and residuals for each fleet.")
+  filename <- "CPUE-table-from-plotreport.csv"
+  addtable(cpue,filen=filename,rundir=extradir,category="CPUE",
+           caption="CPUE report from plotreport.") 
+  # Catch tab-------------------------------
+  catches <- getdatasets(plotreport=plotreport,store=store,analysis=analysis,
+                         verbose=FALSE)
+  flname <- colnames(catches)
+  filename <- plotss3catches(catches,extradir=extradir,analysis=analysis,
+                             console=FALSE)
+  addplot(filen=filename,rundir=extradir,category="catch",
+          caption=paste0("Reported catches by Year and fleet.",
+                         " Recreational catches are interpolated between surveys"))    
+  
+  filename <- paste0(analysis,"_Catch-by-Fleet.csv")
+  allcatch <- cbind(catches,total=rowSums(catches,na.rm=TRUE))
+  addtable(allcatch,filen=filename,rundir=extradir,category="catch",
+           caption=paste0("Reported Catch by Fleet. Recreational catches ",
+                          "are interpolaterd netween surveys.")) 
   # comparison tab-------------
   if ((!is.null(compare)) | (!is.null(paths))) {
-    #   compare=c("SGBC-5-4-100-6","SGBC-5-4-100-43"); paths=NULL
     compscenes <- getreplists(store=store,scenes=compare,paths=paths,
                               listname="plotreport")
     filename <- "Comparison_of_scenarios.png"
@@ -133,7 +155,6 @@ load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))
     fleetnames <- plotreport$FleetNames
     ageprop1 <- getageprops(compscenes$total[[1]])
     ageprop2 <- getageprops(compscenes$total[[2]])
-    
     agg <- ageprop1$agg
     fleets <- sort(unique(agg[,"Fleet"]))
     nfleet <- length(fleets)
@@ -141,7 +162,7 @@ load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))
       whichfleet <- fleets[fl]
       flname <- fleetnames[whichfleet]
       filename <- plotaggage(agg1=ageprop1$agg,agg2=ageprop2$agg,
-                             plotfleet=whichfleet,fleetname=flname,
+                             whichfleet=whichfleet,fleetname=flname,
                              console=FALSE,rundir=extradir,
                              scenarios=compare)
       addplot(filen=filename,rundir=extradir,category="compare",
@@ -154,7 +175,6 @@ load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))
               caption=paste0("Comparison of Fit to Age Comps in each year by ",
                              flname))
     }
-    
     # further table of comparisons
     if (nrow(compscenes$total[[1]]$parameters) == 
         nrow(compscenes$total[[2]]$parameters)) {
@@ -181,14 +201,14 @@ load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))
                caption="Comparison of model structure by scenario.") 
     }
   }
+  
   make_html(replist=NULL,
             rundir=extradir,
             datadir=NULL,
             width=500,
             openfile=TRUE,
-            runnotes=paste0(analysis," Extra Analyses"),
+            runnotes=paste0(paste0(compare,collapse="__")," Extra Analyses"),
             verbose=verbose,
             packagename="rforSS3",
             htmlname=paste0(analysis,"_Extra"))
-  
 #} # end of do_extra

@@ -33,7 +33,7 @@
 do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
                      paths=NULL,verbose=TRUE) {
   #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
-  #  verbose=TRUE; compare=c("SGBC-S70-M5","SGBC-S75-M5","SGBC-S80-M5","SGBC-S100-M5"); paths=NULL;
+  #  verbose=TRUE; compare=c("GSV","GSV_SingleArea_BC_m0.2_nForecast"); paths=NULL;
   setuphtml(extradir)
   # tables tab-------------------------------
   outsummary <- summarizeSS3(plotreport)
@@ -110,13 +110,14 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
   if ((!is.null(compare)) | (!is.null(paths))) {
     compscenes <- getreplists(store=store,scenes=compare,paths=paths,
                               listname="plotreport")
-    filename <- "Comparison_of_scenarios.png"
-    projout <- projreceffects(compscenes=compscenes,fileout=filename,
-                              rundir=extradir,legcex=1.0,startyr=2,
-                              console=FALSE)
-    addplot(filen=filename,rundir=extradir,category="compare",
-            caption="Comparison of Scenarios.")
-    
+    if (compscenes$dimcheck) {
+      filename <- "Comparison_of_scenarios.png"
+      projout <- projreceffects(compscenes=compscenes,fileout=filename,
+                                rundir=extradir,legcex=1.0,startyr=2,
+                                console=FALSE)
+      addplot(filen=filename,rundir=extradir,category="compare",
+              caption="Comparison of Scenarios.")
+    }
     outdepl <- tail(projout$depl,15)
     filename <- "Comparison_Projection_year_depletion.csv"
     addtable(outdepl,filen=filename,rundir=extradir,category="compare",
@@ -131,28 +132,32 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
     if (length(compscenes$total) > 2) {
       warning("Ageproportions of only first two scenarios will be used \n")
     }
-    fleetnames <- plotreport$FleetNames
-    ageprop1 <- getageprops(compscenes$total[[1]])
-    ageprop2 <- getageprops(compscenes$total[[2]])
-    agg <- ageprop1$agg
-    fleets <- sort(unique(agg[,"Fleet"]))
-    nfleet <- length(fleets)
-    for (fl in 1 : nfleet) { # fl = 1
-      whichfleet <- fleets[fl]
-      flname <- fleetnames[whichfleet]
-      filename <- plotaggage(agg1=ageprop1$agg,agg2=ageprop2$agg,
-                             whichfleet=whichfleet,fleetname=flname,
-                             console=FALSE,rundir=extradir,
-                             scenarios=compare)
-      addplot(filen=filename,rundir=extradir,category="compare",
-              caption=paste0("Comparison of Fit to Age Comps aggregated ",
-                             "by Year and ",flname,"."))    
-      
-      filename <- plotageprops(agecomp1=ageprop1,agecomp2=ageprop2,whichfleet=fl,
-                               console=FALSE,rundir=extradir,scenarios=compare) 
-      addplot(filen=filename,rundir=extradir,category="compare",
-              caption=paste0("Comparison of Fit to Age Comps in each year by ",
-                             flname))
+    if (compscenes$dimcheck) {
+      fleetnames <- plotreport$FleetNames
+      ageprop1 <- getageprops(compscenes$total[[1]])
+      ageprop2 <- getageprops(compscenes$total[[2]])
+      agg <- ageprop1$agg
+      fleets <- sort(unique(agg[,"Fleet"]))
+      nfleet <- length(fleets)
+      for (fl in 1 : nfleet) { # fl = 1
+        whichfleet <- fleets[fl]
+        flname <- fleetnames[whichfleet]
+        filename <- plotaggage(agg1=ageprop1$agg,agg2=ageprop2$agg,
+                               whichfleet=whichfleet,fleetname=flname,
+                               console=FALSE,rundir=extradir,
+                               scenarios=compare)
+        addplot(filen=filename,rundir=extradir,category="compare",
+                caption=paste0("Comparison of Fit to Age Comps aggregated ",
+                               "by Year and ",flname,"."))    
+        
+        filename <- plotageprops(agecomp1=ageprop1,agecomp2=ageprop2,whichfleet=fl,
+                                 console=FALSE,rundir=extradir,scenarios=compare) 
+        addplot(filen=filename,rundir=extradir,category="compare",
+                caption=paste0("Comparison of Fit to Age Comps in each year by ",
+                               flname))
+      }
+    } else { warning(cat("Age comparisons not made Scenarios have different ",
+                         "structures.  \n"))
     }
     # further table of comparisons
     if (nrow(compscenes$total[[1]]$parameters) == 
@@ -178,9 +183,11 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
       filename <- "Comparison_Model_structure_scenario.csv"
       addtable(outmod,filen=filename,rundir=extradir,category="compare",
                caption="Comparison of model structure by scenario.") 
+    } else {
+      warning(cat("Different numbers of paramters between models mean no ",
+                  "simple comparison can be made; this may change   \n"))
     }
   }
-  
   make_html(replist=NULL,
             rundir=extradir,
             datadir=NULL,

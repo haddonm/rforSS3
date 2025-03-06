@@ -264,8 +264,7 @@ getprojdyn <- function(compscenes) {
 #' #                     "c:/afishsps/basecase_1/plotreport_basecase_Rp7.Rdata")
 getreplists <- function(store,listname,scenes,paths=NULL,verbose=TRUE) {
   nscen <- length(scenes)
-
-    total <- makelist(scenes)
+  total <- makelist(scenes)
   dyn <- makelist(scenes)
   catches <- makelist(scenes)
   scenesum <- makelist(scenes)
@@ -284,8 +283,16 @@ getreplists <- function(store,listname,scenes,paths=NULL,verbose=TRUE) {
     dyn[[i]] <- timeseries
     catches[[i]] <- projectedcatches(total[[i]])
   }
+  dimcheck <- TRUE  
+  if (nscen > 1) {
+    catchdims <- sapply(catches,dim)
+    if (sum(catchdims[,1] - catchdims[,2]) != 0) dimcheck <-  FALSE
+    warning(cat("Dimensions for dynamics differ either in years or ",
+                "someother factor. Are you using CondAge@Len? ",
+                "Many of the comparison plots and table will fail \n"))
+  }
   return(list(timeseries=dyn,catches=catches,total=total,scenesum=scenesum,
-              scenes=scenes))
+              scenes=scenes,dimcheck=dimcheck))
 } # end of getreplists
 
 #' @title projectedcatches allows alternative SS3 model catches to be compared
@@ -372,7 +379,7 @@ projectedcatches <- function(plotreport) {
 #' # str(projout)
 projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
                            startyr=2,console=TRUE) {
-  #  compscenes=compscenes; rundir="extradir";legcex=1.0;console=TRUE; startyr=2
+  #  compscenes=compscenes; rundir="extradir";legcex=1.0;console=TRUE; startyr=2; fileout=""
   if (startyr < 2) startyr <- 2  # avoiding input error
   catches <- compscenes$catches
   scenes <- names(catches)
