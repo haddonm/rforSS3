@@ -9,9 +9,10 @@
 #'
 #' @param plotreport the output from SS_output
 #' @param extradir the path to the extra directory into which to place the new
-#'     tables and plots
-#' @param analysis the names of the SS3 model being explored
-#' @param store the path to the directory within which the analysis is held
+#'     tables and plots. In my system = store + analysis + extra
+#' @param analysis the name of the SS3 model being explored
+#' @param store the full path to the directory within which the analysis 
+#'     sub-directory is held
 #' @param verbose Should warnings and progress be reported to the console?
 #'     default = TRUE. 
 #' @param compare default = NULL. If multiple scenarios or analyses are to be
@@ -23,7 +24,7 @@
 #'     comparisons are to be made then leave as NULL. 
 #'
 #' @returns nothing but it does generate an array of plots and tables inserted
-#'     inot extradir
+#'     into extradir
 #' @export
 #'
 #' @examples
@@ -35,6 +36,33 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
   #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
   #  verbose=TRUE; compare=NULL; paths=NULL;
   setuphtml(extradir)
+  # age-Length keys
+  destination <- pathtopath(store,analysis)
+  datfile <- pathtopath(destination,paste0(analysis,".dat"))
+  dat <- SS_readdat_3.30(file=datfile,verbose = FALSE,section = NULL)
+  outscene <- getagelenkeys(dat)
+  console <- FALSE
+  verbose <- FALSE
+  if (outscene$nscene > 8) {
+    nscene <- outscene$nscene
+    iter <- ceiling(outscene$nscene / 8)
+    pickscene <- c(1:8)
+    for (i in 1:iter) {
+      plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=pickscene,pch=1,
+                    pchcex=1.25,pchcol=2,console=console,verbose=verbose)
+      pickscene <- pickscene + 8
+      pickpick <- which(pickscene <= nscene)
+      pickscene <- pickscene[pickpick]
+      if ((i < iter) & (console)) readline(prompt="Press [enter] to continue")
+    }
+  } else {
+    plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=NULL,pch=1,
+                  pchcex=1.25,pchcol=2,console=console,verbose=verbose)
+  }
+  
+  
+  
+  
   # tables tab-------------------------------
   outsummary <- summarizeSS3(plotreport)
   answer <- round(printV(outsummary$answer),6)
@@ -161,6 +189,8 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
     } else { warning(cat("Age comparisons not made Scenarios have different ",
                          "structures.  \n"))
     }
+    # agelength keys is exist
+    
     # further table of comparisons
     if (nrow(compscenes$total[[1]]$parameters) == 
         nrow(compscenes$total[[2]]$parameters)) {

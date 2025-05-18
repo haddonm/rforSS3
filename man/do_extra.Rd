@@ -18,11 +18,12 @@ do_extra(
 \item{plotreport}{the output from SS_output}
 
 \item{extradir}{the path to the extra directory into which to place the new
-tables and plots}
+tables and plots. In my system = store + analysis + extra}
 
-\item{analysis}{the names of the SS3 model being explored}
+\item{analysis}{the name of the SS3 model being explored}
 
-\item{store}{the path to the directory within which the analysis is held}
+\item{store}{the full path to the directory within which the analysis
+sub-directory is held}
 
 \item{compare}{default = NULL. If multiple scenarios or analyses are to be
 compared if they are all stored in the same 'store' then this should be
@@ -38,7 +39,7 @@ default = TRUE.}
 }
 \value{
 nothing but it does generate an array of plots and tables inserted
-inot extradir
+into extradir
 }
 \description{
 do_extra generates extra plots and tables relating to a given

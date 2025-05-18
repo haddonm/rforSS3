@@ -636,6 +636,168 @@ getStatus <- function(txtlist) {  # txtlist <- plotreport
   return(tmp1)
 }  # end of getStatus
 
+#' @title get_tuning_table copied completely from r4ss currently not exported
+#' 
+#' @description get_tuning_table is a function copied directly from r4ss. For
+#'     some reason, it is not exported from r4ss! So to use it in a comparison
+#'     one needs to add r4ss::: at its call, which upsets the building 
+#'     process when compiling a package. This is a temporary fix and a request
+#'     will be made to the r4ss team to export the function (it seems like an
+#'     oversight).
+#'
+#' @param replist the output from SS_output
+#' @param fleets which fleets to extract tuning variance information
+#' @param option which tuning method to use, default = 'Francis', alternatives
+#'     include 'none', 'Francis', 'MI', or 'DI'  
+#' @param digits number of digits to round numbers to, default = 6
+#' @param write Write suggested tunings to a file 'suggested_tunings.ss',
+#'     default = FALSE
+#' @param verbose should comments and output be written to the console, 
+#'     default = TRUE
+#'
+#' @returns the tuning table
+#' @export
+#'
+#' @examples
+#' print("no example available")
+get_tuning_table <- function (replist, fleets, option, digits = 6, write = FALSE, 
+                              verbose = TRUE) {
+  tuning_table <- data.frame(factor = integer(), fleet = integer(), 
+                             Var_adj = double(), Hash = character(), 
+                             Old_Var_adj = double(), 
+                             New_Francis = double(), New_MI = double(), 
+                             Francis_mult = double(), Francis_lo = double(),  
+                             Francis_hi = double(), MI_mult = double(), 
+                             Type = character(), Name = character(), 
+                             Note = character(), stringsAsFactors = FALSE)
+  for (type in c("len", "age", "size")) {
+    for (fleet in fleets) {
+      if (verbose) {
+        message("calculating ", type, " tunings for fleet ", 
+                fleet)
+      }
+      if (type == "len") {
+        tunetable <- replist[["Length_Comp_Fit_Summary"]]
+        factor <- 4
+        has_marginal <- fleet %in% replist[["lendbase"]][["Fleet"]]
+        has_conditional <- FALSE
+      }
+      if (type == "age") {
+        tunetable <- replist[["Age_Comp_Fit_Summary"]]
+        factor <- 5
+        has_marginal <- fleet %in% replist[["agedbase"]][["Fleet"]]
+        has_conditional <- fleet %in% replist[["condbase"]][["Fleet"]]
+      }
+      if (type == "size") {
+        tunetable <- replist[["Size_Comp_Fit_Summary"]]
+        factor <- 7
+        has_marginal <- fleet %in% replist[["sizedbase"]][["Fleet"]]
+        has_conditional <- FALSE
+      }
+      if (has_marginal & has_conditional) {
+        warning("fleet", fleet, "has both conditional ages and marginal ages", 
+                "\ntuning will be based on conditional ages")
+      }
+      if (has_marginal | has_conditional) {
+        Francis_mult <- NULL
+        Francis_lo <- NULL
+        Francis_hi <- NULL
+        Francis_output <- SSMethod.TA1.8(fit = replist, 
+                                         type = type, fleet = fleet, plotit = FALSE, 
+                                         printit = FALSE)
+        if (has_conditional) {
+          Francis_output <- SSMethod.Cond.TA1.8(fit = replist, 
+                                                fleet = fleet, plotit = FALSE, printit = FALSE)
+        }
+        Francis_mult <- Francis_output[1]
+        Francis_lo <- Francis_output[2]
+        Francis_hi <- Francis_output[3]
+        Note <- ""
+        if (is.null(Francis_output)) {
+          Francis_mult <- NA
+          Francis_lo <- NA
+          Francis_hi <- NA
+          Note <- "No Francis weight"
+        }
+        Curr_Var_Adj <- NA
+        if ("Curr_Var_Adj" %in% names(tunetable)) {
+          Curr_Var_Adj <- tunetable[["Curr_Var_Adj"]][tunetable[["Fleet"]] == 
+                                                        fleet]
+        }
+        if ("Var_Adj" %in% names(tunetable)) {
+          Curr_Var_Adj <- tunetable[["Var_Adj"]][tunetable[["Fleet"]] == 
+                                                   fleet]
+        }
+        if (is.na(Curr_Var_Adj)) {
+          stop("Model output missing required values, perhaps due to an older version of SS3")
+        }
+        MI_mult <- NA
+        if ("HarMean(effN)/mean(inputN*Adj)" %in% names(tunetable)) {
+          MI_mult <- tunetable$"HarMean(effN)/mean(inputN*Adj)"[tunetable[["Fleet"]] == 
+                                                                  fleet]
+        }
+        if ("MeaneffN/MeaninputN" %in% names(tunetable)) {
+          MI_mult <- tunetable$"MeaneffN/MeaninputN"[tunetable[["Fleet"]] == 
+                                                       fleet]
+        }
+        if ("factor" %in% names(tunetable)) {
+          MI_mult <- tunetable[["Recommend_var_adj"]][tunetable[["Fleet"]] == 
+                                                        fleet]/tunetable[["Curr_Var_Adj"]][tunetable[["Fleet"]] == 
+                                                                                             fleet]
+        }
+        if (all(c("HarMean", "mean_Nsamp_adj") %in% names(tunetable))) {
+          MI_mult <- tunetable[["HarMean"]][tunetable[["Fleet"]] == 
+                                              fleet]/tunetable[["mean_Nsamp_adj"]][tunetable[["Fleet"]] == 
+                                                                                     fleet]
+        }
+        if (is.na(MI_mult)) {
+          stop("Model output missing required values, perhaps due to an older version of SS3")
+        }
+        newrow <- data.frame(factor = factor, fleet = fleet, 
+                             New_Var_adj = NA, hash = "#", Old_Var_adj = round(Curr_Var_Adj, 
+                                                                               digits), New_Francis = round(Curr_Var_Adj * 
+                                                                                                              Francis_mult, digits), New_MI = round(Curr_Var_Adj * 
+                                                                                                                                                      MI_mult, digits), Francis_mult = round(Francis_mult, 
+                                                                                                                                                                                             digits), Francis_lo = round(Francis_lo, digits), 
+                             Francis_hi = round(Francis_hi, digits), MI_mult = round(MI_mult, 
+                                                                                     digits), Type = type, Name = replist[["FleetNames"]][fleet], 
+                             Note = Note, stringsAsFactors = FALSE)
+        tuning_table <- rbind(tuning_table, newrow)
+      }
+    }
+  }
+  if (option == "none") {
+    tuning_table[["New_Var_adj"]] <- tuning_table[["Old_Var_adj"]]
+  }
+  if (option == "Francis") {
+    tuning_table[["New_Var_adj"]] <- tuning_table[["New_Francis"]]
+    NAvals <- is.na(tuning_table[["New_Var_adj"]])
+    tuning_table[["New_Var_adj"]][NAvals] <- tuning_table[["New_MI"]][NAvals]
+    tuning_table[["Note"]][NAvals] <- paste0(tuning_table[["Note"]][NAvals], 
+                                             "--using MI value")
+  }
+  if (option == "MI") {
+    tuning_table[["New_Var_adj"]] <- tuning_table[["New_MI"]]
+  }
+  names(tuning_table)[1] <- "#factor"
+  rownames(tuning_table) <- 1:nrow(tuning_table)
+  tunetable_size <- replist[["Size_Comp_Fit_Summary"]]
+  if (!is.null(tunetable_size) && "par1" %in% names(tunetable_size)) {
+    warning("This function may not work for generalized size composition data ", 
+            "in models prior to SS3 version 3.30.20.")
+  }
+  if (write) {
+    file <- file.path(replist[["inputs"]][["dir"]], "suggested_tuning.ss")
+    if (verbose) {
+      message("writing to file ", file)
+    }
+    write.table(tuning_table, file = file, quote = FALSE, 
+                row.names = FALSE)
+  }
+  return(tuning_table)
+} # end of get_tuning_table
+
+
 #' @title headtail presents the head and tail of a matrix, data.frame, or tibble
 #' 
 #' @description headtail is merely a utility function that displays both the
@@ -849,7 +1011,9 @@ plotagelenkey <- function(outcomp,rundir="",plotscenes=NULL,pch=1,pchcex=1.25,
   mtext("Age",side=1,outer=TRUE,cex=1.2,line=-0.2)
   mtext(mainlab,side=3,outer=TRUE,cex=1.2,line=0)
   if (!console) {
+    dev.off()
     addplot(filen=filen,rundir=rundir,category="AgeLenKeys",caption=caption)
+    
   }
 } # end of plotagelenkey
 
@@ -1145,166 +1309,6 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
 
 
 
-#' @title get_tuning_table copied completely from r4ss currently not exported
-#' 
-#' @description get_tuning_table is a function copied directly from r4ss. For
-#'     some reason, it is not exported from r4ss! So to use it in a comparison
-#'     one needs to add r4ss::: at its call, which upsets the building 
-#'     process when compiling a package. This is a temporary fix and a request
-#'     will be made to the r4ss team to export the function (it seems like an
-#'     oversight).
-#'
-#' @param replist the output from SS_output
-#' @param fleets which fleets to extract tuning variance information
-#' @param option which tuning method to use, default = 'Francis', alternatives
-#'     include 'none', 'Francis', 'MI', or 'DI'  
-#' @param digits number of digits to round numbers to, default = 6
-#' @param write Write suggested tunings to a file 'suggested_tunings.ss',
-#'     default = FALSE
-#' @param verbose should comments and output be written to the console, 
-#'     default = TRUE
-#'
-#' @returns the tuning table
-#' @export
-#'
-#' @examples
-#' print("no example available")
-get_tuning_table <- function (replist, fleets, option, digits = 6, write = FALSE, 
-          verbose = TRUE) {
-  tuning_table <- data.frame(factor = integer(), fleet = integer(), 
-                             Var_adj = double(), Hash = character(), 
-                             Old_Var_adj = double(), 
-                             New_Francis = double(), New_MI = double(), 
-                             Francis_mult = double(), Francis_lo = double(),  
-                             Francis_hi = double(), MI_mult = double(), 
-                             Type = character(), Name = character(), 
-                             Note = character(), stringsAsFactors = FALSE)
-  for (type in c("len", "age", "size")) {
-    for (fleet in fleets) {
-      if (verbose) {
-        message("calculating ", type, " tunings for fleet ", 
-                fleet)
-      }
-      if (type == "len") {
-        tunetable <- replist[["Length_Comp_Fit_Summary"]]
-        factor <- 4
-        has_marginal <- fleet %in% replist[["lendbase"]][["Fleet"]]
-        has_conditional <- FALSE
-      }
-      if (type == "age") {
-        tunetable <- replist[["Age_Comp_Fit_Summary"]]
-        factor <- 5
-        has_marginal <- fleet %in% replist[["agedbase"]][["Fleet"]]
-        has_conditional <- fleet %in% replist[["condbase"]][["Fleet"]]
-      }
-      if (type == "size") {
-        tunetable <- replist[["Size_Comp_Fit_Summary"]]
-        factor <- 7
-        has_marginal <- fleet %in% replist[["sizedbase"]][["Fleet"]]
-        has_conditional <- FALSE
-      }
-      if (has_marginal & has_conditional) {
-        warning("fleet", fleet, "has both conditional ages and marginal ages", 
-                "\ntuning will be based on conditional ages")
-      }
-      if (has_marginal | has_conditional) {
-        Francis_mult <- NULL
-        Francis_lo <- NULL
-        Francis_hi <- NULL
-        Francis_output <- SSMethod.TA1.8(fit = replist, 
-                                         type = type, fleet = fleet, plotit = FALSE, 
-                                         printit = FALSE)
-        if (has_conditional) {
-          Francis_output <- SSMethod.Cond.TA1.8(fit = replist, 
-                                                fleet = fleet, plotit = FALSE, printit = FALSE)
-        }
-        Francis_mult <- Francis_output[1]
-        Francis_lo <- Francis_output[2]
-        Francis_hi <- Francis_output[3]
-        Note <- ""
-        if (is.null(Francis_output)) {
-          Francis_mult <- NA
-          Francis_lo <- NA
-          Francis_hi <- NA
-          Note <- "No Francis weight"
-        }
-        Curr_Var_Adj <- NA
-        if ("Curr_Var_Adj" %in% names(tunetable)) {
-          Curr_Var_Adj <- tunetable[["Curr_Var_Adj"]][tunetable[["Fleet"]] == 
-                                                        fleet]
-        }
-        if ("Var_Adj" %in% names(tunetable)) {
-          Curr_Var_Adj <- tunetable[["Var_Adj"]][tunetable[["Fleet"]] == 
-                                                   fleet]
-        }
-        if (is.na(Curr_Var_Adj)) {
-          stop("Model output missing required values, perhaps due to an older version of SS3")
-        }
-        MI_mult <- NA
-        if ("HarMean(effN)/mean(inputN*Adj)" %in% names(tunetable)) {
-          MI_mult <- tunetable$"HarMean(effN)/mean(inputN*Adj)"[tunetable[["Fleet"]] == 
-                                                                  fleet]
-        }
-        if ("MeaneffN/MeaninputN" %in% names(tunetable)) {
-          MI_mult <- tunetable$"MeaneffN/MeaninputN"[tunetable[["Fleet"]] == 
-                                                       fleet]
-        }
-        if ("factor" %in% names(tunetable)) {
-          MI_mult <- tunetable[["Recommend_var_adj"]][tunetable[["Fleet"]] == 
-                                                        fleet]/tunetable[["Curr_Var_Adj"]][tunetable[["Fleet"]] == 
-                                                                                             fleet]
-        }
-        if (all(c("HarMean", "mean_Nsamp_adj") %in% names(tunetable))) {
-          MI_mult <- tunetable[["HarMean"]][tunetable[["Fleet"]] == 
-                                              fleet]/tunetable[["mean_Nsamp_adj"]][tunetable[["Fleet"]] == 
-                                                                                     fleet]
-        }
-        if (is.na(MI_mult)) {
-          stop("Model output missing required values, perhaps due to an older version of SS3")
-        }
-        newrow <- data.frame(factor = factor, fleet = fleet, 
-                             New_Var_adj = NA, hash = "#", Old_Var_adj = round(Curr_Var_Adj, 
-                                                                               digits), New_Francis = round(Curr_Var_Adj * 
-                                                                                                              Francis_mult, digits), New_MI = round(Curr_Var_Adj * 
-                                                                                                                                                      MI_mult, digits), Francis_mult = round(Francis_mult, 
-                                                                                                                                                                                             digits), Francis_lo = round(Francis_lo, digits), 
-                             Francis_hi = round(Francis_hi, digits), MI_mult = round(MI_mult, 
-                                                                                     digits), Type = type, Name = replist[["FleetNames"]][fleet], 
-                             Note = Note, stringsAsFactors = FALSE)
-        tuning_table <- rbind(tuning_table, newrow)
-      }
-    }
-  }
-  if (option == "none") {
-    tuning_table[["New_Var_adj"]] <- tuning_table[["Old_Var_adj"]]
-  }
-  if (option == "Francis") {
-    tuning_table[["New_Var_adj"]] <- tuning_table[["New_Francis"]]
-    NAvals <- is.na(tuning_table[["New_Var_adj"]])
-    tuning_table[["New_Var_adj"]][NAvals] <- tuning_table[["New_MI"]][NAvals]
-    tuning_table[["Note"]][NAvals] <- paste0(tuning_table[["Note"]][NAvals], 
-                                             "--using MI value")
-  }
-  if (option == "MI") {
-    tuning_table[["New_Var_adj"]] <- tuning_table[["New_MI"]]
-  }
-  names(tuning_table)[1] <- "#factor"
-  rownames(tuning_table) <- 1:nrow(tuning_table)
-  tunetable_size <- replist[["Size_Comp_Fit_Summary"]]
-  if (!is.null(tunetable_size) && "par1" %in% names(tunetable_size)) {
-    warning("This function may not work for generalized size composition data ", 
-            "in models prior to SS3 version 3.30.20.")
-  }
-  if (write) {
-    file <- file.path(replist[["inputs"]][["dir"]], "suggested_tuning.ss")
-    if (verbose) {
-      message("writing to file ", file)
-    }
-    write.table(tuning_table, file = file, quote = FALSE, 
-                row.names = FALSE)
-  }
-  return(tuning_table)
-} # end of get_tuning_table
 
 
 
