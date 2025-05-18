@@ -33,7 +33,7 @@
 do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
                      paths=NULL,verbose=TRUE) {
   #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
-  #  verbose=TRUE; compare=c("GSV","GSV_SingleArea_BC_m0.2_nForecast"); paths=NULL;
+  #  verbose=TRUE; compare=NULL; paths=NULL;
   setuphtml(extradir)
   # tables tab-------------------------------
   outsummary <- summarizeSS3(plotreport)
@@ -91,6 +91,8 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
   filename <- "CPUE-table-from-plotreport.csv"
   addtable(cpue,filen=filename,rundir=extradir,category="CPUE",
            caption="CPUE report from plotreport.") 
+  
+  
   # Catch tab-------------------------------
   catches <- getdatasets(plotreport=plotreport,store=store,analysis=analysis,
                          verbose=FALSE)

@@ -279,6 +279,117 @@ fixstarter <- function(directory,findtext="use init value",toscreen=FALSE) {
    cat("New ",startfile,"  written \n")
 }  # end of projstarter
 
+#' @title getagelenkeys extracts data from SS3 data file about age composition
+#' 
+#' @description getagelenkeys is used to extract an sumry of all the age-
+#'     compositon data and conditional age-at-length data from an SS3 data file.
+#'     The inputdata are best generated using the SS_readdat_3.30. This function
+#'     has not been tested on versions of SS < 3.30. 
+#'
+#' @param inputdata the output of SS_readdat_3.30.
+#' @param verbose default=TRUE, should messages be sent to the console.
+#'
+#' @returns A list of all agelenkeys in the data set relating to gender, year, 
+#'     and fleet, The number of scenarios, years, and fleets.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#'   library(rforSS3)
+#'   library(r4ss)
+#'   library(codeutils)
+#'   library(hplot)
+#'   ddir <- getDBdir()
+#'   wdir <- pathtopath(ddir,"/A_CodeR/SS3run/")
+#'   store <- pathtopath(wdir,"egfish/")
+#'   analysis <- "BaseCase"
+#'   destination <- pathtopath(store,analysis)
+#'   datfile <- pathtopath(destination,paste0(analysis,".dat"))
+#'   dat <- SS_readdat_3.30(file=datfile,verbose = TRUE,
+#'                          echoall = lifecycle::deprecated(),section = NULL)
+#'   outscene <- getagelenkeys(dat)
+#'   str(outscene,max.level=1)
+#'   str(outscene$allscene,max.level=1)
+#' }
+getagelenkeys <- function(inputdata,verbose=TRUE) {
+  #  inputdata=dat; verbose=TRUE
+  agecp <- inputdata$agecomp
+  colnames(agecp) <- tolower(colnames(agecp))
+  agecols <- colnames(agecp)
+  picklen <- which(agecols %in% c("lbin_lo"))
+  pickpos <- which(agecp[,picklen] > 0)
+  if (length(pickpos) > 0) {  # are there any cond AaL data?  
+    pickfleet <- which(agecols %in% c("fleet","FltSvy"))  
+    usecolnameflt <- agecols[pickfleet]  
+    pickpos <- which(agecp[,usecolnameflt] > 0)
+    if (length(pickpos) == 0) { # is available cond AaL data being used?
+      stop("Available conditional age-at-length data not being used.")
+    } else {
+      picksex <- which(agecols %in% c("sex","gender"))  
+      usecolnamesex <- agecols[picksex]  
+      pickyr <- which(agecols %in% c("Yr","year"))
+      usecolnameyr <- agecols[pickyr]
+      pickpos <- which((agecp[,picklen] > 0) & (agecp[,pickfleet] > 0) &
+                         (agecp[,pickyr] > 0)) 
+      agecp <- agecp[pickpos,] # only keep +ve cond AaL data 
+      binwidth <- inputdata$binwidth
+      lenvector <- seq(min(agecp[,"lbin_lo"]),max(agecp[,"lbin_hi"],binwidth))
+      agevector <- inputdata$agebin_vector
+      nages <- length(agevector)
+      fleets <- sort(unique(agecp[,pickfleet]))
+      fleetnames <- inputdata$fleetnames[fleets]
+      nfleet <- length(fleets)
+      years <- sort(unique(agecp[,pickyr]))
+      nyear <- length(years)
+      sexes <- sort(unique(agecp[,picksex]))
+      gender <- ifelse(sexes > 0,"twosex","combined")
+      if (gender == "twosex") sexes <- c(1,2)
+      nsex <- ifelse(sexes > 0,2,1)
+      initcols <- c(usecolnameyr,usecolnameflt,usecolnamesex,
+                    "lbin_lo","lbin_hi","nsamp")
+      leninit <- length(initcols)
+      startcounts <- which(agecols == "nsamp") + 1
+      numcol <- ncol(agecp)
+      if (gender == "combined") {  # read all columns of just the f columns
+        pickcols <- startcounts:(startcounts + nages - 1)
+      } else {
+        pickcols <- startcounts : numcol
+      }
+      columns <- c(initcols,agecols[pickcols])
+      agecomp <- agecp[,columns]
+      scenes <- expand.grid(sex=sexes,years=years,fleets=fleets)
+      scenames <- expand.grid(sex=gender,years=years,fleets=fleetnames)
+      nscene <- nrow(scenes)
+      sampleN <- numeric(nscene)
+      scenename <- NULL
+      for (i in 1:nscene) 
+        scenename <- c(scenename,paste0(scenames[i,1],"_",scenames[i,2],
+                                        "_",scenames[i,3]))
+      allscenes <- makelist(scenename)
+      for (i in 1:nscene) {  # i = 1
+        pickrecs <- which((agecomp[,usecolnameyr] == scenes[i,"years"]) & 
+                            (agecomp[,usecolnameflt] == scenes[i,"fleets"]) &
+                            (agecomp[,usecolnamesex] == scenes[i,"sex"]) & 
+                            (agecomp$lbin_lo > 0))        
+        agekey <- agecomp[pickrecs,]
+        sampleN[i] <- sum(agekey[,"nsamp"],na.rm=TRUE)
+        allscenes[[i]] <- agekey[order(agekey$lbin_lo),]        
+      }
+      names(sampleN) <- scenename
+      ageerror <- inputdata$ageerror
+    }  # cond AaL data being used   
+  } else {
+    if (verbose) 
+      warning(cat("No Conditional age-at-length data, age structure plotted."))
+    return(NULL)
+  }
+  return(invisible(list(allscenes=allscenes,nscene=nscene,nyear=nyear,
+                        years=years,nfleet=nfleet,fleetnames=fleetnames,
+                        gender=gender,sexes=sexes,ageerror=ageerror,
+                        sampleN=sampleN,scenenames=scenename,nages=nages,
+                        lenvector=lenvector,agevector=agevector)))
+} # end of getagelenkeys
+
 #' @title getaggprops calculates the proportions at age aggregated across years
 #'
 #' @param plotreport the object output from SS_output
@@ -629,6 +740,118 @@ pathtype <- function(inpath) {
   if (length(grep("\\\\",inpath)) > 0) typepath <- "\\"
   return(typepath)
 } # end of pathtype
+
+
+#' @title plotagelenkey plots all age-length keys derived form getagelenkeys
+#' 
+#' @description plotagelenkey is used to produce plots of all age-length keys
+#'     used in SS3 when using conditional age-at-length. The age-length keys
+#'     are naive in not having ageing error applied. That aspect remains under
+#'     development. The getagelenkeys functions identifies combinations of
+#'     the factors of gender, year, and fleet. The function is setup to plot
+#'     a maximum of eight plots in a single graph. If the number of scenarios
+#'     is greate than 8 then plotscenes can specify which to plot. Otherwise
+#'     it retains its default = NULL
+#'
+#' @param outcomp the output of getagelenkeys applied to an SS3 data file,
+#'     which contains ageing data set up to apply conditional age-at-length.
+#' @param rundir the directory into which to place plots if console=FALSE,
+#'     default = ''
+#' @param plotscenes this can be used to plot sets of specific scenarios, made 
+#'     up of gender + year + fleetname. default = NULL
+#' @param pch the character to use in the plots, default = 1
+#' @param pchcex the size of the character used in the plots
+#' @param pchcol the colour of the character used in the plots
+#' @param console should each plot go to the console, the default, or be 
+#'     saved to rundir as a st of png files each identified by the scenes
+#'     plotted
+#' @param verbose should any feedback and warnings be sent to the console. 
+#'     default = TRUE
+#'     
+#' @seealso{
+#'   \link{getagelenkeys}
+#' }
+#'
+#' @returns nothing but it does generate a set of plots.
+#' @export
+#'
+#' @examples
+#' # outcomp=outscene; console=TRUE;plotscenes=NULL
+#' # pchcex=1.25;pchcol=2;pch=1; verbose=TRUE
+plotagelenkey <- function(outcomp,rundir="",plotscenes=NULL,pch=1,pchcex=1.25,
+                          pchcol=2,console=TRUE,verbose=TRUE) { 
+  allscenes <- outcomp$allscenes
+  scnames <- outcomp$scenenames
+  nscene <- outcomp$nscene
+  nages <- outcomp$nages
+  usescenes <- allscenes
+  usesampN <- outcomp$sampleN
+  if (!is.null(plotscenes)) {
+    nscene <- length(plotscenes)
+    scnames <- outcomp$scenenames[plotscenes]    
+    usescenes <- makelist(scnames)
+    for (i in 1:nscene) {
+      usescenes[[i]] <- allscenes[[plotscenes[i]]]
+    } 
+    usesampN <- usesampN[plotscenes]
+  } else {
+    plotscenes <- 1:nscene
+    if ((nscene > 8) & (console)) {
+      if (verbose) 
+        warning(cat("Only the first 8 agelength keys will be plotted"))
+      plotscenes <- 1:8
+      nscene <- length(plotscenes)
+      scnames <- scnames[plotscenes]    
+      usescenes <- makelist(scnames)
+      for (i in 1:nscene) {
+        usescenes[[i]] <- allscenes[[plotscenes[i]]]
+      } 
+      usesampN <- usesampN[plotscenes]
+    } 
+  }
+  mainlab <- paste0("scenes_",min(plotscenes),"-",max(plotscenes))
+  agevector <- outcomp$agevector
+  agelim <- range(agevector)
+  sizelim <- range(outcomp$lenvector)
+  filen <- ""
+  if (!console) {
+    fnam <- paste0("agelengthkeys_",mainlab,".png")
+    filen <- pathtopath(rundir,fnam)
+    caption <- paste0("Age-Length keys for ",paste0("_",scnames,collapse="_"))
+  }
+  plotprep(width=9,height=9,filename=filen)
+  parset(plots=c(4,2),margin=c(0.3,0.5,0.05,0.05),cex=1.0,
+         outmargin=c(1,0.1,1,0.1),byrow=FALSE)
+  for (sc in 1:nscene) { #  sc=2
+    if (usesampN[sc] > 0) {
+      agekey <- usescenes[[sc]]
+      numrow <- nrow(agekey) 
+      pickC <- which(colnames(agekey) == "nsamp")   
+      label <- scnames[sc]
+      plot(agevector,1:nages,type="p",pch=1,cex=1,xlim=c(agelim),
+           ylim=c(sizelim),col=0,panel.first=grid(),xlab="Age",ylab=label)
+      for (i in 1:nages) {
+        for (j in 1:numrow) { # i=1;j=1
+          lcomp <- mean(agekey[j,"lbin_lo"],agekey[j,"lbin_hi"],na.rm=TRUE)
+          npt <- agekey[j,(pickC+i)]
+          if (npt > 0) {
+            points(x=rep(agevector[i],npt),y=rep(lcomp,npt),pch=pch,
+                   cex=pchcex,col=pchcol)  
+          }
+        }
+      }
+      mtext(paste0("N = ",usesampN[sc]),side=1,line=-1.2,adj=1)
+    }  else {
+      plotnull(msg="No Data")
+      mtext(scnames[sc],side=2,line=1,cex=1.0)
+    }
+  }
+  mtext("Age",side=1,outer=TRUE,cex=1.2,line=-0.2)
+  mtext(mainlab,side=3,outer=TRUE,cex=1.2,line=0)
+  if (!console) {
+    addplot(filen=filen,rundir=rundir,category="AgeLenKeys",caption=caption)
+  }
+} # end of plotagelenkey
 
 #' @title plotss3catches generates a plot of catch by fleet and of total catch
 #' 

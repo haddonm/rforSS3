@@ -5,83 +5,21 @@
 
 
 
-#' @title getagecomp puts the ageing data from the SS dat file into matrices
-#' 
-#' @description getagedata extracts the age composition data from 
-#'
-#' @param rundir 
-#' @param destination 
-#' @param analysis 
-#' @param filen 
-#' @param console 
-#'
-#' @returns
-#' @export
-#'
-#' @examples
-getagecomp <- function(rundir,destination,analysis=NULL,filen=NULL,
-                        console=TRUE) {
-  #  destination=destination; analysis = analysis; filen=NULL; console=TRUE
-  if (is.null(analysis)) {
-    filename <- pathtopath(destination,filen)
-  } else {
-    filename <- pathtopath(destination,paste0(analysis,".dat"))
-  }
-  compdat <- SS_readdat_3.30(file=filename,verbose=TRUE)
-  abins <- compdat$agebin_vector
-  nbins <- length(abins)
-  agecomp <- compdat$agecomp
-  sexes <- unique(agecomp[,"sex"])
-  if ((length(sexes) == 2) | (sexes == 3)) {
-    nsex <- 2
-    sexname <- c("females","males")
-  } 
-  if (sexes == 0) {
-    nsex <- 1
-    sexname <- "mixed"
-  }
-  afleets <- unique(agecomp[,"fleet"])
-  flnames <- compdat$fleetnames[afleets]
-  anfleets <- length(afleets)
-  if (agecomp[1,"sex"] == 3) {
-    afemales <- makelist(flnames) 
-    amales <- makelist(flnames)
-    for (fl in 1:anfleets) { # fl=1
-      pickfl <- which(agecomp[,"fleet"] == afleets[fl])
-      agecompfl <- agecomp[pickfl,]
-      anyrs <- nrow(agecompfl)
-      ayrs <- agecompfl[,"year"]
-      females <- matrix(0,nrow=nbins,ncol=anyrs,dimnames=list(abins,ayrs))
-      males <- females
-      for (yr in 1:anyrs) { # yr=1
-        females[,yr] <- as.numeric(agecompfl[yr,10:(10+nbins-1)])
-        males[,yr] <- as.numeric(agecompfl[yr,(10+nbins):(10+(2*nbins)-1)])
-      }
-      afemales[[fl]] <- females
-      amales[[fl]] <- males
-    }
-    out <- list(females=afemales,males=amales)
-  }
-  if (agecomp[1,"sex"] == 0) {
-    amixed <- makelist(flnames) 
-    for (fl in 1:anfleets) { # fl=1
-      pickfl <- which(agecomp[,"fleet"] == afleets[fl])
-      agecompfl <- agecomp[pickfl,]
-      anyrs <- nrow(agecompfl)
-      ayrs <- agecompfl[,"year"]
-      mixed <- matrix(0,nrow=nbins,ncol=anyrs,dimnames=list(abins,ayrs))
-      for (yr in 1:anyrs) { # yr=1
-        mixed[,yr] <- as.numeric(agecompfl[yr,10:(10+nbins-1)])
-      }
-      amixed[[fl]] <- mixed
-    }
-    out <- list(amixed=amixed)
-  }
-  return(out)
-} # end of getagecomp
 
-library(hplot)
+
+library(makehtml)
+library(rforSS3)
+library(r4ss)
 library(codeutils)
+library(hplot)
+
+ddir <- getDBdir()                          # get dropdir dir
+wdir <- pathtopath(ddir,"/A_CodeR/SS3run/") # use your own working directory
+source(pathtopath(wdir,"ss3_utilities.R"))  # where one stores ss3_utilities.R
+
+store <- pathtopath(wdir,"kingfish/") 
+destination <- pathtopath(store,"BC")
+analysis <- "BC"
 
 
 agecmop <- getagecomp(rundir="",destination=destination,analysis=analysis,
@@ -240,6 +178,91 @@ makeQuarto(rundir="C:/Users/malco/Dropbox/A_CodeR/SA-SS3/course/",
 
 
 #catches ---------------------
+
+
+
+
+#' @title getagecomp puts the ageing data from the SS dat file into matrices
+#' 
+#' @description getagedata extracts the age composition data from 
+#'
+#' @param rundir the directory in which the fishery directories are found
+#' @param destination the fishery directory within the rundir
+#' @param analysis the name of the analysis directory within the destination, 
+#'     default = NULL, in which case filen neeeds to be populated with the full
+#'     name of the SS3 data file to be found in the analysis directory
+#' @param filen default = NULL or, if 'analysis = NULL this needs to be the full
+#'     filename of the SS3 data file
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+getagecomp <- function(rundir,destination,analysis=NULL,filen=NULL) {
+  #  destination=destination; analysis = analysis; filen=NULL; console=TRUE
+  if (is.null(analysis)) {
+    filename <- pathtopath(destination,filen)
+  } else {
+    filename <- pathtopath(destination,paste0(analysis,".dat"))
+  }
+  compdat <- SS_readdat_3.30(file=filename,verbose=TRUE)
+  abins <- compdat$agebin_vector
+  nbins <- length(abins)
+  agecomp <- compdat$agecomp
+  sexes <- unique(agecomp[,"sex"])
+  if ((length(sexes) == 2) | (sexes == 3)) {
+    nsex <- 2
+    sexname <- c("females","males")
+  } 
+  if (sexes == 0) {
+    nsex <- 1
+    sexname <- "mixed"
+  }
+  pickflt <- which(agecomp[,"fleet"] > 0)
+  if (length(pickflt) > 0) {
+    agecomp <- agecomp[pickflt,]
+    afleets <- unique(agecomp[,"fleet"])
+    flnames <- compdat$fleetnames[afleets]
+    anfleets <- length(afleets)
+    if (agecomp[1,"sex"] == 3) {
+      afemales <- makelist(flnames) 
+      amales <- makelist(flnames)
+      for (fl in 1:anfleets) { # fl=1
+        pickfl <- which(agecomp[,"fleet"] == afleets[fl])
+        agecompfl <- agecomp[pickfl,]
+        anyrs <- nrow(agecompfl)
+        ayrs <- agecompfl[,"year"]
+        females <- matrix(0,nrow=nbins,ncol=anyrs,dimnames=list(abins,ayrs))
+        males <- females
+        for (yr in 1:anyrs) { # yr=1
+          females[,yr] <- as.numeric(agecompfl[yr,10:(10+nbins-1)])
+          males[,yr] <- as.numeric(agecompfl[yr,(10+nbins):(10+(2*nbins)-1)])
+        }
+        afemales[[fl]] <- females
+        amales[[fl]] <- males
+      }
+      out <- list(females=afemales,males=amales)
+    }
+    if (agecomp[1,"sex"] == 0) {
+      amixed <- makelist(flnames) 
+      for (fl in 1:anfleets) { # fl=1
+        pickfl <- which(agecomp[,"fleet"] == afleets[fl])
+        agecompfl <- agecomp[pickfl,]
+        anyrs <- nrow(agecompfl)
+        ayrs <- agecompfl[,"year"]
+        mixed <- matrix(0,nrow=nbins,ncol=anyrs,dimnames=list(abins,ayrs))
+        for (yr in 1:anyrs) { # yr=1
+          mixed[,yr] <- as.numeric(agecompfl[yr,10:(10+nbins-1)])
+        }
+        amixed[[fl]] <- mixed
+      }
+      out <- list(amixed=amixed)
+    }
+  } else {
+    stop("No age comp data used")
+  }
+  return(out)
+} # end of getagecomp
 
 
 library(hplot)
@@ -422,18 +445,122 @@ do_compare <- function(compdir,store,compare,paths=NULL,verbose=TRUE) {
 } # end of do_compare
 
 
+# getagelenkeys---------------------------
 
 
+ 
+#' @title plotagelenkey plots all age-length keys derived form getagelenkeys
+#' 
+#' @description plotagelenkey is used to produce plots of all age-length keys
+#'     used in SS3 when using conditional age-at-length. The age-length keys
+#'     are naive in not having ageing error applied. That aspect remains under
+#'     development. The getagelenkeys functions identifies combinations of
+#'     the factors of gender, year, and fleet. The function is setup to plot
+#'     a maximum of eight plots in a single graph. If the number of scenarios
+#'     is greate than 8 then plotscenes can specify which to plot. Otherwise
+#'     it retains its default = NULL
+#'
+#' @param outcomp the output of getagelenkeys applied to an SS3 data file,
+#'     which contains ageing data set up to apply conditional age-at-length.
+#' @param rundir the directory into which to place plots if console=FALSE,
+#'     default = ''
+#' @param plotscenes this can be used to plot sets of specific scenarios, made 
+#'     up of gender + year + fleetname. default = NULL
+#' @param pch the character to use in the plots, default = 1
+#' @param pchcex the size of the character used in the plots
+#' @param pchcol the colour of the character used in the plots
+#' @param console should each plot go to the console, the default, or be 
+#'     saved to rundir as a st of png files each identified by the scenes
+#'     plotted
+#' @param verbose should any feedback and warnings be sent to the console. 
+#'     default = TRUE
+#'     
+#' \seealso{
+#'   \link{getagelenkeys}
+#' }
+#'
+#' @returns nothing but it does generate a set of plots.
+#' @export
+#'
+#' @examples
+#' # outcomp=outscene; console=TRUE;plotscenes=c(9:16)
+#' # pchcex=1.25;pchcol=2;pch=1
+plotagelenkey <- function(outcomp,rundir="",plotscenes=NULL,pch=1,pchcex=1.25,
+                          pchcol=2,console=TRUE,verbose=TRUE) { 
+  list2env(outcomp, envir = environment())
+  scnames <- scenenames
+  usescenes <- allscenes
+  usesampN <- sampleN
+  if (!is.null(plotscenes)) {
+    nscene <- length(plotscenes)
+    scnames <- scenenames[plotscenes]    
+    usescenes <- makelist(scnames)
+    for (i in 1:nscene) {
+      usescenes[[i]] <- allscenes[[plotscenes[i]]]
+    } 
+    usesampN <- sampleN[plotscenes]
+  } else {
+    if ((nscene > 8) & (console)) {
+      if (verbose) 
+        warning(cat("Only the first 8 agelength keys will be plotted"))
+      plotscenes <- 1:8
+      nscene <- length(plotscenes)
+      scnames <- scenenames[plotscenes]    
+      usescenes <- makelist(scnames)
+      for (i in 1:nscene) {
+        usescenes[[i]] <- allscenes[[plotscenes[i]]]
+      } 
+      usesampN <- sampleN[plotscenes]
+    } 
+  }
+  agelim <- range(agevector)
+  sizelim <- range(lenvector)
+  plotprep(width=9,height=9,filename="")
+  parset(plots=c(4,2),margin=c(0.3,0.5,0.05,0.05),cex=1.0,
+         outmargin=c(1,0.1,1,0.1),byrow=FALSE)
+  for (sc in 1:nscene) { #  sc=2
+    if (usesampN[sc] > 0) {
+      agekey <- usescenes[[sc]]
+      numrow <- nrow(agekey) 
+      pickC <- which(colnames(agekey) == "nsamp")   
+      label <- scnames[sc]
+      plot(agevector,1:nages,type="p",pch=1,cex=1,xlim=c(agelim),
+           ylim=c(sizelim),col=0,panel.first=grid(),xlab="Age",ylab=label)
+      for (i in 1:nages) {
+        for (j in 1:numrow) { # i=1;j=1
+          lcomp <- mean(agekey[j,"lbin_lo"],agekey[j,"lbin_hi"],na.rm=TRUE)
+          npt <- agekey[j,(pickC+i)]
+          if (npt > 0) {
+            points(x=rep(agevector[i],npt),y=rep(lcomp,npt),pch=pch,
+                   cex=pchcex,col=pchcol)  
+          }
+        }
+      }
+      mtext(paste0("N = ",usesampN[sc]),side=1,line=-1.2,adj=1)
+    }  else {
+      plotnull(msg="No Data")
+      mtext(scnames[sc],side=2,line=1,cex=1.0)
+    }
+  }
+  mtext("Age",side=1,outer=TRUE,cex=1.2,line=-0.2)
+  mainlab <- paste0("Scenes_",min(plotscenes),":",max(plotscenes))
+  mtext(mainlab,side=3,outer=TRUE,cex=1.2,line=0)
+} # end of plotagelenkey
 
 
-
-
-
-
-
-
-
-
+if ((outscene$nscene > 8) & (console==TRUE)) {
+  nscene <- outscene$nscene
+  iter <- ceiling(outscene$nscene / 8)
+  pickscene <- c(1:8)
+  for (i in 1:iter) {
+    plotagelenkey(outcomp=outscene,rundir="",plotscenes=pickscene,pch=1,
+                  pchcex=1.25,pchcol=2,console=TRUE,verbose=TRUE)
+    pickscene <- pickscene + 8
+    pickpick <- which(pickscene <= nscene)
+    pickscene <- pickscene[pickpick]
+    if (i < iter) readline(prompt="Press [enter] to continue")
+  }
+} # end of plotagelengkeys
 
 
 
