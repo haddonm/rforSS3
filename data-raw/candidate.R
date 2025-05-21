@@ -1,7 +1,7 @@
 
 
 
-
+filename <- comparecpueplot(cpue,rundir=extradir,height=8,CI=TRUE,console=TRUE)
 
 
 

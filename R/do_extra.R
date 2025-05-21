@@ -34,7 +34,7 @@
 do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
                      paths=NULL,verbose=TRUE) {
   #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
-  #  verbose=TRUE; compare=c("BC-priors","BC-noage"); paths=NULL;
+  #  verbose=TRUE; compare=c("BC-priors","BC-noage","BC"); paths=NULL;
   setuphtml(extradir)
   # age-Length keys
   destination <- pathtopath(store,analysis)
@@ -156,8 +156,13 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
     outcat <- tail(projout$totalC,15)
     filename <- "Comparison_Projected_catch_by_scenario.csv"
     addtable(outcat,filen=filename,rundir=extradir,category="compare",
-             caption="Comparison of projected catch levels by scenario.")    
+             caption="Comparison of projected catch levels by scenario.")   
     
+    cpue <- compscenes$cpue
+    filename <- comparecpueplot(cpue,rundir=extradir,height=8,CI=TRUE,
+                                console=FALSE)
+    addplot(filen=filename,rundir=extradir,category="compare",
+            caption="Comparison of CPUE. Note CI are from 1st scenario only.")
     # agecomp comparisons  
     if (dat$N_agebins > 0) {
       if (length(compscenes$total) > 2) {
@@ -191,8 +196,6 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
                            "structures.  \n"))
       }
     }
-    
-    
     # further table of comparisons
     if (nrow(compscenes$total[[1]]$parameters) == 
         nrow(compscenes$total[[2]]$parameters)) {

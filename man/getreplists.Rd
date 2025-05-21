@@ -43,7 +43,7 @@ separate sub-directories for each scenario being considered and it
 generates the filenames to be generated from the various identified
 scenes or scenarios. The alternative is to provide a character vector
 containing the full paths and filenames of the SS_output objects to be
-compared.
+compared. cpue has been added to the output.
 }
 \examples{
 # require(r4ss)
