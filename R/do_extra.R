@@ -30,39 +30,39 @@
 #' @examples
 #' # syntax:
 #' # do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
-#' #          store=store)
+#' #          store=store,compare=c("BC-priors","BC-noage"))
 do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
                      paths=NULL,verbose=TRUE) {
   #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
-  #  verbose=TRUE; compare=NULL; paths=NULL;
+  #  verbose=TRUE; compare=c("BC-priors","BC-noage"); paths=NULL;
   setuphtml(extradir)
   # age-Length keys
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
   dat <- SS_readdat_3.30(file=datfile,verbose = FALSE,section = NULL)
-  outscene <- getagelenkeys(dat)
-  console <- FALSE
-  verbose <- FALSE
-  if (outscene$nscene > 8) {
-    nscene <- outscene$nscene
-    iter <- ceiling(outscene$nscene / 8)
-    pickscene <- c(1:8)
-    for (i in 1:iter) {
-      plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=pickscene,pch=1,
+  if (dat$N_agebins > 0) {
+    outscene <- getagelenkeys(dat)
+    console <- FALSE
+    verbose <- FALSE
+    if (outscene$nscene > 8) {
+      nscene <- outscene$nscene
+      iter <- ceiling(outscene$nscene / 8)
+      pickscene <- c(1:8)
+      for (i in 1:iter) {
+        plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=pickscene,pch=1,
+                      pchcex=1.25,pchcol=2,console=console,verbose=verbose)
+        pickscene <- pickscene + 8
+        pickpick <- which(pickscene <= nscene)
+        pickscene <- pickscene[pickpick]
+        if ((i < iter) & (console)) readline(prompt="Press [enter] to continue")
+      }
+    } else {
+      plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=NULL,pch=1,
                     pchcex=1.25,pchcol=2,console=console,verbose=verbose)
-      pickscene <- pickscene + 8
-      pickpick <- which(pickscene <= nscene)
-      pickscene <- pickscene[pickpick]
-      if ((i < iter) & (console)) readline(prompt="Press [enter] to continue")
     }
   } else {
-    plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=NULL,pch=1,
-                  pchcex=1.25,pchcol=2,console=console,verbose=verbose)
+    warning(cat("No ageing data found for the primary analysis \n"))
   }
-  
-  
-  
-  
   # tables tab-------------------------------
   outsummary <- summarizeSS3(plotreport)
   answer <- round(printV(outsummary$answer),6)
@@ -159,37 +159,39 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
              caption="Comparison of projected catch levels by scenario.")    
     
     # agecomp comparisons  
-    if (length(compscenes$total) > 2) {
-      warning("Ageproportions of only first two scenarios will be used \n")
-    }
-    if (compscenes$dimcheck) {
-      fleetnames <- plotreport$FleetNames
-      ageprop1 <- getageprops(compscenes$total[[1]])
-      ageprop2 <- getageprops(compscenes$total[[2]])
-      agg <- ageprop1$agg
-      fleets <- sort(unique(agg[,"Fleet"]))
-      nfleet <- length(fleets)
-      for (fl in 1 : nfleet) { # fl = 1
-        whichfleet <- fleets[fl]
-        flname <- fleetnames[whichfleet]
-        filename <- plotaggage(agg1=ageprop1$agg,agg2=ageprop2$agg,
-                               whichfleet=whichfleet,fleetname=flname,
-                               console=FALSE,rundir=extradir,
-                               scenarios=compare)
-        addplot(filen=filename,rundir=extradir,category="compare",
-                caption=paste0("Comparison of Fit to Age Comps aggregated ",
-                               "by Year and ",flname,"."))    
-        
-        filename <- plotageprops(agecomp1=ageprop1,agecomp2=ageprop2,whichfleet=fl,
-                                 console=FALSE,rundir=extradir,scenarios=compare) 
-        addplot(filen=filename,rundir=extradir,category="compare",
-                caption=paste0("Comparison of Fit to Age Comps in each year by ",
-                               flname))
+    if (dat$N_agebins > 0) {
+      if (length(compscenes$total) > 2) {
+        warning("Ageproportions of only first two scenarios will be used \n")
       }
-    } else { warning(cat("Age comparisons not made Scenarios have different ",
-                         "structures.  \n"))
+      if (compscenes$dimcheck) {
+        fleetnames <- plotreport$FleetNames
+        ageprop1 <- getageprops(compscenes$total[[1]])
+        ageprop2 <- getageprops(compscenes$total[[2]])
+        agg <- ageprop1$agg
+        fleets <- sort(unique(agg[,"Fleet"]))
+        nfleet <- length(fleets)
+        for (fl in 1 : nfleet) { # fl = 1
+          whichfleet <- fleets[fl]
+          flname <- fleetnames[whichfleet]
+          filename <- plotaggage(agg1=ageprop1$agg,agg2=ageprop2$agg,
+                                 whichfleet=whichfleet,fleetname=flname,
+                                 console=FALSE,rundir=extradir,
+                                 scenarios=compare)
+          addplot(filen=filename,rundir=extradir,category="compare",
+                  caption=paste0("Comparison of Fit to Age Comps aggregated ",
+                                 "by Year and ",flname,"."))    
+          
+          filename <- plotageprops(agecomp1=ageprop1,agecomp2=ageprop2,whichfleet=fl,
+                                   console=FALSE,rundir=extradir,scenarios=compare) 
+          addplot(filen=filename,rundir=extradir,category="compare",
+                  caption=paste0("Comparison of Fit to Age Comps in each year by ",
+                                 flname))
+        }
+      } else { warning(cat("Age comparisons not made Scenarios have different ",
+                           "structures.  \n"))
+      }
     }
-    # agelength keys is exist
+    
     
     # further table of comparisons
     if (nrow(compscenes$total[[1]]$parameters) == 
@@ -215,10 +217,7 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
       filename <- "Comparison_Model_structure_scenario.csv"
       addtable(outmod,filen=filename,rundir=extradir,category="compare",
                caption="Comparison of model structure by scenario.") 
-    } else {
-      warning(cat("Different numbers of paramters between models mean no ",
-                  "simple comparison can be made; this may change   \n"))
-    }
+    } 
   }
   make_html(replist=NULL,
             rundir=extradir,

@@ -49,5 +49,5 @@ new results.
 \examples{
 # syntax:
 # do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
-#          store=store)
+#          store=store,compare=c("BC-priors","BC-noage"))
 }

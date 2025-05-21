@@ -25,14 +25,21 @@ comparestats <- function(x) { # x = compscenes
   answer <- sapply(x1,"[[","answer") 
   firstlike <- x1[[1]]$likes
   nlik <- nrow(firstlike)
-  likes <- matrix(0,nrow=nlik,ncol=nscen,
-                  dimnames=list(rownames(firstlike),scenes))
+  likenames <- rownames(firstlike)
+  likes <- matrix(NA,nrow=nlik,ncol=nscen,
+                  dimnames=list(likenames,scenes))
   likes[,1] <- firstlike[,"values"]
-  for (i in 2:nscen) likes[,i] <- x1[[i]]$likes[,"values"]
+  for (i in 2:nscen) { # i = 2
+    namelike2 <- rownames(x1[[i]]$likes)
+    pickL <- match(namelike2,likenames)
+    if (length(pickL != nlik)) warning(cat("Differeing number of likelihoods \n"))
+    likes[pickL,i] <- x1[[i]]$likes[,"values"]      
+  }
   firstpar <- x1[[1]]$param
   npar <- nrow(firstpar)
+  namepar <- rownames(firstpar)
   param <- matrix(0,nrow=npar,ncol=nscen,
-                  dimnames=list(rownames(firstpar),scenes))
+                  dimnames=list(namepar,scenes))
   param[,1] <- firstpar[,"Value"]
   for (i in 2:nscen) {
     nextpar <- x1[[i]]$param
