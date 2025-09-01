@@ -9,6 +9,7 @@ plotageprops(
   agecomp2 = NULL,
   whichfleet = 1,
   height = 9,
+  comptype = "Age",
   console = TRUE,
   rundir = "",
   scenarios = c(1, 2)
@@ -26,6 +27,9 @@ will be plotted.}
 \item{whichfleet}{the fleet number (actual names obtained from array dims)}
 
 \item{height}{height of the plot, adjust depending on number of years/plots}
+
+\item{comptype}{default = 'Age', the capital letter is important. But could
+be 'Len'}
 
 \item{console}{should the plot be saved as a png or go to console,
 default = TRUE}

@@ -636,6 +636,85 @@ getStatus <- function(txtlist) {  # txtlist <- plotreport
   return(tmp1)
 }  # end of getStatus
 
+
+
+#' @title getprops gets proportions of agecomp or lencomp aggregated across years
+#'
+#' @param compbase an object from SS_output output object, either 
+#'     plotreport$agedbase or plotreport$lendbase
+#' @param fleetnames the vector of fleetnames, usually plotreport$FlkeetNames
+#' @param comptype default = 'Len' but could be 'Age', describes the typw of 
+#'     data being extracted as length cor age omposition.
+#'
+#' @returns a list of the proportional distribution of agecomps or lencomps in 
+#'     each year, the related expected proportions in each year, and the 
+#'     aggregated proportions across years
+#' @export
+#'
+#' @examples
+#' print("Wait n example data")
+getprops <- function(compbase,fleetnames,comptype="Len") { # compbase=plotreport$lendbase
+  fleets <- unique(compbase[,"Fleet"])
+  nfleet <- length(fleets)
+  fleetnames <- fleetnames[fleets]
+  sex <- unique(compbase[,"Sex"])
+  nsex <- length(sex)
+  if (nsex > 1) sexes <- c("female","male") else sexes <- "mixed"
+  ages <- unique(compbase[,"Bin"])
+  nages <- length(ages)
+  yrs <- unique(compbase[,"Yr"])
+  nyr <- length(yrs)
+  propyr <- array(0,dim=c(nyr,nages,nsex,nfleet),
+                  dimnames=list(yrs,ages,sexes,fleetnames))
+  exppropyr <- propyr
+  for (yr in 1:nyr) {   # yr = 6; sx = 1; fl =1
+    for (sx in 1:nsex) {
+      for (fl in 1:nfleet) {
+        pick <- which((compbase[,"Yr"] == yrs[yr]) & 
+                        (compbase[,"Sex"] == sex[sx]) & 
+                        (compbase[,"Fleet"] == fleets[fl]))
+        if (length(pick) == 0) {
+          propyr[yr,,sx,fl] <- rep(0,nages)
+          exppropyr[yr,,sx,fl] <- rep(0,nages)   
+        } else {
+          yrdat <- compbase[pick,]
+          if (length(pick) < nages) {
+            pick <- match(yrdat[,"Bin"],ages) 
+            Exp <- obs <- rep(0,nages)
+            obs[pick] <- yrdat[,"Obs"]
+            Exp[pick] <- yrdat[,"Exp"]
+          } else {
+            obs <- yrdat[,"Obs"]
+            Exp <- yrdat[,"Exp"]
+          }
+          propyr[yr,,sx,fl] <- obs
+          exppropyr[yr,,sx,fl] <- Exp
+        }
+      }
+    }
+  }
+  Bins <- sort(unique(compbase[["Bin"]]))
+  nbins <- length(Bins)
+  df <- data.frame(
+    Nsamp_adj = compbase[["Nsamp_adj"]],
+    effN = compbase[["effN"]],
+    obs = compbase[["Obs"]] * compbase[["Nsamp_adj"]],
+    exp = compbase[["Exp"]] * compbase[["Nsamp_adj"]]
+  )
+  agg <- aggregate(
+    x = df,
+    by = list(
+      bin = compbase[["Bin"]], f = compbase[["Fleet"]],
+      sex = compbase[["Sex"]]
+    ),FUN = sum
+  )
+  agg[["obs"]] <- agg[["obs"]] / agg[["Nsamp_adj"]]
+  agg[["exp"]] <- agg[["exp"]] / agg[["Nsamp_adj"]]
+  colnames(agg) <- c(comptype,"Fleet","Sex","Nsamp_adj","effN","Obs","Exp")
+  # agg
+  return(list(propyr=propyr,exppropyr=exppropyr,agg=agg))
+} # end of getprops
+
 #' @title get_tuning_table copied completely from r4ss currently not exported
 #' 
 #' @description get_tuning_table is a function copied directly from r4ss. For

@@ -584,6 +584,8 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
 #'     will be plotted.
 #' @param whichfleet the fleet number (actual names obtained from array dims)
 #' @param height height of the plot, adjust depending on number of years/plots
+#' @param comptype default = 'Age', the capital letter is important. But could
+#'     be 'Len'
 #' @param console should the plot be saved as a png or go to console, 
 #'     default = TRUE
 #' @param rundir the directory into which any plot should be saved, default=''
@@ -599,9 +601,10 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
 #' @examples
 #' # compare==c("SGBC-5-4-100-43","SGBC-5-4-80-6")
 plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
-                         console=TRUE,rundir="",scenarios=c(1,2)) {
-  #   agecomp1=ageprop1;  whichfleet <- 1; agecomp2=ageprop2; console=TRUE;rundir=""
-  #   scenarios=compare; height=9
+                         comptype="Age",console=TRUE,rundir="",
+                         scenarios=c(1,2)) {
+  #   agecomp1=ageprop1;  whichfleet <- 1; agecomp2=NULL; console=TRUE;rundir=""
+  #   scenarios=analysis; height=9; comptype
   namedims <- dimnames(agecomp1[[1]])
   fleetnames <- namedims[[4]]
   nfleet <- length(fleetnames)
@@ -633,8 +636,8 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
     if (nsex == 2) {
       femprop <- propyr[i,,1]
       malprop <- -propyr[i,,2]
-      plot(x=ages,y=seq(-maxy,maxy,length=nages),type="l",lwd=0,col=0,xlab="",
-           ylab="",panel.first=grid())
+      plot(x=ages,y=seq(-maxy,maxy,length=nages),type="l",lwd=0,col=0,
+           xlab="",ylab="",panel.first=grid())
       lines(ages,femprop,lwd=1,col=1)
       points(ages,femprop,cex=0.75,pch=16)
       polygon(x=c(ages[1],ages,ages[nages],ages[1]),y=c(0,femprop,0,0),col="darkgrey")  
@@ -673,14 +676,19 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
       }
       mtext(yr,side=3,outer=FALSE,adj=1,cex=1.0,line=-1.1)
     }
-  }
+  } # end of yrs loop
   plotnull(msg=" ")
   leg <- NULL
   for (i in 1:2) leg <- c(leg,paste0(scenarios[i],"_Female"),
                           paste0(scenarios[i],"_Male"))
-  legend("bottomright",legend=leg,col=c(2,4,3,5),lwd=3,lty=c(1,1,2,2),
-         cex=1.2,bty="n")
-  mtext("Age (yrs)",side=1,outer=TRUE,cex=1.2,line=-0.2)
+  if (!is.null(agecomp2)) {
+    legend("bottomright",legend=leg,col=c(2,4,3,5),lwd=3,lty=c(1,1,2,2),
+           cex=1.2,bty="n")
+  } else {
+    legend("bottomright",legend=leg[1:2],col=c(2,4),lwd=3,lty=c(1,1),
+           cex=1.2,bty="n")
+  }
+  mtext(comptype,side=1,outer=TRUE,cex=1.2,line=-0.2)
   mtext(paste0("Proportion for Fleet ",fleetnames[whichfleet]),side=2,
         outer=TRUE,cex=1.2,line=-0.2)
   if (!console) dev.off()
@@ -700,6 +708,8 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
 #' @param whichfleet the fleet number
 #' @param fleetname the name of the fleet, default=''
 #' @param height height of the plot, adjust as desired. default = 7
+#' @param comptype default = 'Age', the capital letter is important. But could
+#'     be 'Len'
 #' @param console should the plot be saved as a png or go to console, 
 #'     default = TRUE
 #' @param rundir the directory into which any plot should be saved, default=''
@@ -713,22 +723,23 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
 #' @export
 #'
 #' @examples
-#' # compare==c("SGBC-5-4-100-43","SGBC-5-4-80-6")
+#' # syntax: compare==c("SGBC-5-4-100-43","SGBC-5-4-80-6")
 plotaggage <- function(agg1,agg2=NULL,whichfleet=1,fleetname="",height=7,
-                       console=TRUE,rundir="",scenarios=c(1,2)) {
-  #  agg1=ageprop1$agg;agg2=ageprop2$agg;whichfleet=whichfleet;fleetname=flname;
-  #  height=4;console=TRUE;rundir=extradir;scenarios=compare
+                       comptype="Age",console=TRUE,rundir="",scenarios=c(1,2)) {
+  #  agg1=lenprop$agg;agg2=NULL;whichfleet=fleets[fl];fleetname=flname;
+  #  height=4;console=TRUE;rundir=extradir;scenarios=analysis;comptype="Len"
   fleets <- sort(unique(agg1[,"Fleet"]))
   nfleet <- length(fleets)
   pickF <- which(agg1[,"Fleet"]==whichfleet)
   aggF <- agg1[pickF,]
-  ages <- sort(unique(aggF[,"Age"]))
-  nages <- length(ages)
+  bins <- sort(unique(aggF[,comptype]))
+  nbins <- length(bins)
   sex <- sort(unique(aggF[,"Sex"]))
   nsex <- length(sex)
   if (console) { filen="" } else {
     scenes <- paste0(scenarios,collapse="_")
-    fileout <- paste0("Aggregated_",fleetname,"AgeComp_Fits_",scenes,"_",
+    tmplab <- paste0("_",comptype,"Comp_Fits_")
+    fileout <- paste0("Aggregated_",fleetname,tmplab,scenes,"_",
                       ".png")
     filen <- pathtopath(rundir,fileout)
   }
@@ -748,19 +759,27 @@ plotaggage <- function(agg1,agg2=NULL,whichfleet=1,fleetname="",height=7,
     maxy1 <- getmax(prop1,mult=1.005)
     maxy <- max(c(maxy1,maxy2),na.rm=TRUE)
     label <- paste0("Proportion for ",fleetname)
-    plot(x=ages,y=seq(0,maxy,length=nages),type="l",lwd=0,col=0,
-         xlab="Ages (Yrs)",ylab=label,panel.first=grid())
-    polygon(x=c(ages[1],ages,ages[nages],ages[1]),y=c(0,prop1[,1],0,0),
+    plot(x=bins,y=seq(0,maxy,length=nbins),type="l",lwd=0,col=0,
+         xlab=comptype,ylab=label,panel.first=grid())
+    polygon(x=c(bins[1],bins,bins[nbins],bins[1]),y=c(0,prop1[,1],0,0),
             col="darkgrey") 
-    lines(ages,prop1[,1],lwd=2,col=1)
-    points(ages,prop1[,1],cex=1.5,pch=16)
-    lines(ages,prop1[,2],lwd=4,col=2)
-    if (!is.null(agg2)) lines(ages,expprop2,lwd=4,col=3)   
+    lines(bins,prop1[,1],lwd=2,col=1)
+    points(bins,prop1[,1],cex=1.5,pch=16)
+    lines(bins,prop1[,2],lwd=4,col=2)
+    if (!is.null(agg2)) lines(bins,expprop2,lwd=4,col=3)   
     legend("topright",legend=scenarios,col=c(2,3),lwd=4,lty=c(1,1),
            cex=1.5,bty="n")  
   } else {
-    femprop1 <- aggF[aggF[,"Sex"]==1,c("Obs","Exp")]
-    malprop1 <- aggF[aggF[,"Sex"]==2,c("Obs","Exp")]
+    femprop1 <- matrix(0,nrow=nbins,ncol=2,dimnames=list(bins,c("Obs","Exp")))
+    malprop1 <- femprop1
+    fem1 <- aggF[aggF[,"Sex"]==1,]
+    pickbin <- match(fem1[,comptype],bins)
+    femprop1[pickbin,1] <- fem1[,"Obs"] 
+    femprop1[pickbin,2] <- fem1[,"Exp"]
+    mal1 <- aggF[aggF[,"Sex"]==2,]
+    pickbin <- match(mal1[,comptype],bins)
+    malprop1[pickbin,1] <- mal1[,"Obs"] 
+    malprop1[pickbin,2] <- mal1[,"Exp"]
     expprop2 <- NULL
     agg2F <- NULL
     if (!is.null(agg2)) {
@@ -775,27 +794,32 @@ plotaggage <- function(agg1,agg2=NULL,whichfleet=1,fleetname="",height=7,
     if (!is.null(agg2F)) maxy2 <- getmax(expprop2,mult=1.005)
     maxy <- max(maxy1,maxy2)
     label <- paste0("Proportion for ",fleetname)
-    plot(x=ages,y=seq(-maxy,maxy,length=nages),type="l",lwd=0,col=0,
-         xlab="Ages (Yrs)",ylab=label,panel.first=grid())
-    polygon(x=c(ages[1],ages,ages[nages],ages[1]),y=c(0,femprop1[,1],0,0),
+    plot(x=bins,y=seq(-maxy,maxy,length=nbins),type="l",lwd=0,col=0,
+         xlab=comptype,ylab=label,panel.first=grid())
+    polygon(x=c(bins[1],bins,bins[nbins],bins[1]),y=c(0,femprop1[,1],0,0),
             col="darkgrey") 
-    lines(ages,femprop1[,1],lwd=2,col=1)
-    points(ages,femprop1[,1],cex=1.5,pch=16)
-    lines(ages,femprop1[,2],lwd=4,col=2)
-    polygon(x=c(ages[1],ages,ages[nages],ages[1]),y=c(0,-malprop1[,1],0,0),
+    lines(bins,femprop1[,1],lwd=2,col=1)
+    points(bins,femprop1[,1],cex=1.5,pch=16)
+    lines(bins,femprop1[,2],lwd=4,col=2)
+    polygon(x=c(bins[1],bins,bins[nbins],bins[1]),y=c(0,-malprop1[,1],0,0),
             col="lightgrey") 
-    lines(ages,-malprop1[,1],lwd=2,col=1)
-    points(ages,-malprop1[,1],cex=1.5,pch=16)
-    lines(ages,-malprop1[,2],lwd=4,col=4)
+    lines(bins,-malprop1[,1],lwd=2,col=1)
+    points(bins,-malprop1[,1],cex=1.5,pch=16)
+    lines(bins,-malprop1[,2],lwd=4,col=4)
     if (!is.null(agg2F)) {
-      lines(ages,expprop2[,1],lwd=4,col=3,lty=2)
-      lines(ages,-expprop2[,2],lwd=4,col=5,lty=2)
+      lines(bins,expprop2[,1],lwd=4,col=3,lty=2)
+      lines(bins,-expprop2[,2],lwd=4,col=5,lty=2)
     }
     leg <- NULL
     for (i in 1:2) leg <- c(leg,paste0(scenarios[i],"_Female"),
                             paste0(scenarios[i],"_Male"))
-    legend("topright",legend=leg,col=c(2,4,3,5),lwd=3,lty=c(1,1,2,2),
-           cex=1.5,bty="n")    
+    if (!is.null(agg2F)) {
+      legend("topright",legend=leg,col=c(2,4,3,5),lwd=3,lty=c(1,1,2,2),
+             cex=1.5,bty="n")    
+    } else {
+      legend("topright",legend=leg[1:2],col=c(2,4),lwd=3,lty=c(1,1),
+             cex=1.5,bty="n")       
+    }
   } # end of 2 sex loop
   if (!console) dev.off()
   return(invisible(filen))

@@ -10,6 +10,7 @@ plotaggage(
   whichfleet = 1,
   fleetname = "",
   height = 7,
+  comptype = "Age",
   console = TRUE,
   rundir = "",
   scenarios = c(1, 2)
@@ -28,6 +29,9 @@ plotted.}
 
 \item{height}{height of the plot, adjust as desired. default = 7}
 
+\item{comptype}{default = 'Age', the capital letter is important. But could
+be 'Len'}
+
 \item{console}{should the plot be saved as a png or go to console,
 default = TRUE}
 
@@ -44,7 +48,7 @@ graph of the aggregated age proportions either singly or with the
 predicted values of two scenarios plotted on top of each other
 }
 \examples{
-# compare==c("SGBC-5-4-100-43","SGBC-5-4-80-6")
+# syntax: compare==c("SGBC-5-4-100-43","SGBC-5-4-80-6")
 }
 \seealso{
 {

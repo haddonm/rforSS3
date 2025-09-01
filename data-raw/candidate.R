@@ -445,122 +445,42 @@ do_compare <- function(compdir,store,compare,paths=NULL,verbose=TRUE) {
 } # end of do_compare
 
 
-# getagelenkeys---------------------------
+# getlencomp--------------------
+console=TRUE
+rundir=""
+labeldiv=1
+scene <- paste0("Garfish_",analysis)
 
+lencomp <- dat$lencomp
+lbins <- dat$lbin_vector
+nlbin <- length(lbins)
 
- 
-#' @title plotagelenkey plots all age-length keys derived form getagelenkeys
-#' 
-#' @description plotagelenkey is used to produce plots of all age-length keys
-#'     used in SS3 when using conditional age-at-length. The age-length keys
-#'     are naive in not having ageing error applied. That aspect remains under
-#'     development. The getagelenkeys functions identifies combinations of
-#'     the factors of gender, year, and fleet. The function is setup to plot
-#'     a maximum of eight plots in a single graph. If the number of scenarios
-#'     is greate than 8 then plotscenes can specify which to plot. Otherwise
-#'     it retains its default = NULL
-#'
-#' @param outcomp the output of getagelenkeys applied to an SS3 data file,
-#'     which contains ageing data set up to apply conditional age-at-length.
-#' @param rundir the directory into which to place plots if console=FALSE,
-#'     default = ''
-#' @param plotscenes this can be used to plot sets of specific scenarios, made 
-#'     up of gender + year + fleetname. default = NULL
-#' @param pch the character to use in the plots, default = 1
-#' @param pchcex the size of the character used in the plots
-#' @param pchcol the colour of the character used in the plots
-#' @param console should each plot go to the console, the default, or be 
-#'     saved to rundir as a st of png files each identified by the scenes
-#'     plotted
-#' @param verbose should any feedback and warnings be sent to the console. 
-#'     default = TRUE
-#'     
-#' \seealso{
-#'   \link{getagelenkeys}
-#' }
-#'
-#' @returns nothing but it does generate a set of plots.
-#' @export
-#'
-#' @examples
-#' # outcomp=outscene; console=TRUE;plotscenes=c(9:16)
-#' # pchcex=1.25;pchcol=2;pch=1
-plotagelenkey <- function(outcomp,rundir="",plotscenes=NULL,pch=1,pchcex=1.25,
-                          pchcol=2,console=TRUE,verbose=TRUE) { 
-  list2env(outcomp, envir = environment())
-  scnames <- scenenames
-  usescenes <- allscenes
-  usesampN <- sampleN
-  if (!is.null(plotscenes)) {
-    nscene <- length(plotscenes)
-    scnames <- scenenames[plotscenes]    
-    usescenes <- makelist(scnames)
-    for (i in 1:nscene) {
-      usescenes[[i]] <- allscenes[[plotscenes[i]]]
-    } 
-    usesampN <- sampleN[plotscenes]
-  } else {
-    if ((nscene > 8) & (console)) {
-      if (verbose) 
-        warning(cat("Only the first 8 agelength keys will be plotted"))
-      plotscenes <- 1:8
-      nscene <- length(plotscenes)
-      scnames <- scenenames[plotscenes]    
-      usescenes <- makelist(scnames)
-      for (i in 1:nscene) {
-        usescenes[[i]] <- allscenes[[plotscenes[i]]]
-      } 
-      usesampN <- sampleN[plotscenes]
-    } 
+gender <- c("f","m")
+flnames <- paste0(gender[1],lbins)
+mlnames <- paste0(gender[2],lbins)
+sexes <- unique(lencomp[,"sex"])
+yrs <- lencomp[,"year"]
+nsamp <- lencomp[,"Nsamp"]
+if (sexes > 1) { # sexes identified
+  pickL <- which(colnames(lencomp) %in% c(flnames,mlnames))
+  if ((nlbin * 2) != length(pickL)) {
+    stop(cat("Number of length bins in lencomp differs from lbin_vector \n"))
   }
-  agelim <- range(agevector)
-  sizelim <- range(lenvector)
-  plotprep(width=9,height=9,filename="")
-  parset(plots=c(4,2),margin=c(0.3,0.5,0.05,0.05),cex=1.0,
-         outmargin=c(1,0.1,1,0.1),byrow=FALSE)
-  for (sc in 1:nscene) { #  sc=2
-    if (usesampN[sc] > 0) {
-      agekey <- usescenes[[sc]]
-      numrow <- nrow(agekey) 
-      pickC <- which(colnames(agekey) == "nsamp")   
-      label <- scnames[sc]
-      plot(agevector,1:nages,type="p",pch=1,cex=1,xlim=c(agelim),
-           ylim=c(sizelim),col=0,panel.first=grid(),xlab="Age",ylab=label)
-      for (i in 1:nages) {
-        for (j in 1:numrow) { # i=1;j=1
-          lcomp <- mean(agekey[j,"lbin_lo"],agekey[j,"lbin_hi"],na.rm=TRUE)
-          npt <- agekey[j,(pickC+i)]
-          if (npt > 0) {
-            points(x=rep(agevector[i],npt),y=rep(lcomp,npt),pch=pch,
-                   cex=pchcex,col=pchcol)  
-          }
-        }
-      }
-      mtext(paste0("N = ",usesampN[sc]),side=1,line=-1.2,adj=1)
-    }  else {
-      plotnull(msg="No Data")
-      mtext(scnames[sc],side=2,line=1,cex=1.0)
-    }
+  fem <- t(lencomp[,pickL[1:nlbin]])
+  rownames(fem) <- lbins; colnames(fem) <- yrs
+  mal <- t(lencomp[,pickL[(nlbin+1):(nlbin * 2)]])
+  rownames(mal) <- lbins; colnames(mal) <- yrs  
+  # plot females
+  if (sum(colSums(fem,na.rm=TRUE)) > 0) {
+    plotcompdata(compdata=expandcolumns(fem),analysis=paste0(scene,"_female"),
+                 ylabel="Counts",console=console,outdir=rundir)
   }
-  mtext("Age",side=1,outer=TRUE,cex=1.2,line=-0.2)
-  mainlab <- paste0("Scenes_",min(plotscenes),":",max(plotscenes))
-  mtext(mainlab,side=3,outer=TRUE,cex=1.2,line=0)
-} # end of plotagelenkey
-
-
-if ((outscene$nscene > 8) & (console==TRUE)) {
-  nscene <- outscene$nscene
-  iter <- ceiling(outscene$nscene / 8)
-  pickscene <- c(1:8)
-  for (i in 1:iter) {
-    plotagelenkey(outcomp=outscene,rundir="",plotscenes=pickscene,pch=1,
-                  pchcex=1.25,pchcol=2,console=TRUE,verbose=TRUE)
-    pickscene <- pickscene + 8
-    pickpick <- which(pickscene <= nscene)
-    pickscene <- pickscene[pickpick]
-    if (i < iter) readline(prompt="Press [enter] to continue")
-  }
-} # end of plotagelengkeys
+  if (sum(colSums(mal,na.rm=TRUE)) > 0) {
+    plotcompdata(compdata=expandcolumns(mal),analysis=paste0(scene,"_male"),
+                 ylabel="Counts",console=console,outdir=rundir)
+  }  
+  
+}
 
 
 
@@ -568,4 +488,7 @@ if ((outscene$nscene > 8) & (console==TRUE)) {
 
 
 
+lendbase <- plotreport$lendbase
+
+lenprop <- getprops(lendbase)
 
