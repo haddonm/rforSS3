@@ -161,6 +161,173 @@ dirExists <- function(indir,create=TRUE) {
    }
 }  # end of dirExists
 
+#' @title domed calculates domed selectivity curves
+#' 
+#' @description domed uses 6 parameters and a set of mean size or age classes 
+#'     to calculate a domed selectivity curve with a maximum of 1.0 (rescaling 
+#'     can be done outside the function), but has parameters for the selectivity 
+#'     of the initial and final size/age classes. There is an ascending limb and 
+#'     a descending limb with the potential of a plateau in between. The six 
+#'     parameters are:
+#'     
+#'     1. the age/size where selectivity first becomes 1.0, peak1
+#'     
+#'     2. the size/age where selectivity first begins to decline, peak2
+#'     
+#'     3. the steepness of the ascending limb, asc ln(width)
+#'     
+#'     4. the steepness of the descending limb, dsc  ln(width)
+#'     
+#'     5. the selectivity of the first age/size class, selmin, and 
+#'     
+#'     6. the selectivity of the last age/size class, selmax 
+#'     
+#'     The selectivity of the first and last composition classes, selmin and 
+#'     selmax, are the inverse logit transformation of the value used in the 
+#'     calculations.The equations here are a modified form of those in 
+#'     Hurtado-Ferro et al, (2014) combined with some from Methot and Wetzel, 
+#'     (2013).
+#'     The descending limb of any dome shaped selectivity curves imply that the 
+#'     fishing gear used is unable to collect all representatives of the larger 
+#'     or older classes. The predicted numbers of smaller or younger animals, 
+#'     that are only partially selected, are inflated because of the partial 
+#'     selection. If any larger or older animals are, in fact, caught, then the 
+#'     same inflation can happen to those animals as a result of the partial 
+#'     selection implied by the dome shape. Small and young animals weight 
+#'     very little, the same cannot be said for the larger or older animals. 
+#'     Some people refer to the extra biomass this phenomenon can imply as 
+#'     'ghost biomass', even though it might be real. Whatever the case, when 
+#'     using dome shaped selectivity it is best to be aware of this issue and 
+#'     to be cautious about how this is interpreted. The 20* terms in the J1 
+#'     and J2 factors are required to force the joins to be as effective as
+#'     required (see Methot and Wetzel). 
+#'
+#' @param p a vector of six parameters.
+#' @param L a vector of the mean of nL age/size classes
+#'
+#' @return a vector of selectivities
+#' @export
+#' 
+#' @references Methot, R.D. and C.R, Wetzel (2013) Stock synthesis: A biological 
+#'     and statistical framework for fish stock assessment and fishery management. 
+#'     Supplementary material, Appendix A. Equs A1.30 onwards. 
+#'     \emph{Fisheries Research} 142:86-99.
+#'     
+#'     Hurtado-Ferro, F., Punt, A.E., and K.T. Hill (2014) Use of multiple 
+#'     selectivity patterns as a proxy for spatial structure. 
+#'     \emph{Fisheries Research} 158:102-115.
+#'
+#' @examples
+#'   L <- seq(1,60,1)
+#'   p <- c(25,32,16,33,-5,-2)
+#'   sel <- domed(p,L)
+#'   plot(L,sel,type="l",xlab="Age",ylab="Selectivity",lwd=2)
+domed <- function(p, L) { # p=p; L = 6
+  nL <- length(L)
+  J1 <- 1/(1 + exp(-20*((L - p[1])/(1 + abs(L - p[1])))))
+  J2 <- 1/(1 + exp(-20*((L - p[2])/(1 + abs(L - p[2])))))   
+  comp1 <- 1/(1 + exp(-p[5])) # inverse logit forced to be 0 - 1
+  comp2 <- exp((-(L - p[1])^2)/p[3])
+  comp3 <- exp((-(L[1] - p[1])^2)/p[3])
+  asc <- comp1 + (1 - comp1) * ((comp2 - comp3)/(1 - comp3))
+  comp4 <- 1/(1 + exp(-p[6])) # inverse logit 
+  comp5 <- exp((-(L - p[2])^2)/p[4])
+  comp6 <- exp((-(L[nL] - p[2])^2)/p[4])
+  dsc <- 1 + (comp4 - 1) * ((comp5 - 1)/(comp6 - 1))
+  sel <- (asc * (1 - J1)) + J1 * (1 - J2 + dsc * J2)
+  sel <- sel/max(sel) # to ensure a maximum = 1.0
+  return(sel)
+} # end of domed
+
+#' @title domeSS3 calculates domed selectivity curve, pattern24 for size in SS33
+#' 
+#' @description domeSS3 uses 6 parameters and a set of mean size or age classes 
+#'     to calculate a domed selectivity curve with a maximum of 1.0 (rescaling 
+#'     can be done outside the function), but has parameters for the selectivity 
+#'     of the initial and final size/age classes. There is an ascending limb and 
+#'     a descending limb with the potential of a plateau in between. The 
+#'     description in the SS3 technical description, p 9-10 Methot and Wetzel
+#'     (2013, supplementary material = Appendix A) is somewhat confusing, there
+#'     is a peak2 but no peak1. the sequence of calculation needs to be peak2,
+#'     J1 (join1), J2, t1min, t2min, asc, dsc, and then the domed selectivity.
+#'     It is confusing because some of the parameters require highly modified 
+#'     inverse logit transformation and some don't, so their values are not 
+#'     intuitively obvious, and their descriptions in the User Manual are 
+#'     misleading parameters 3 and 4 for example are not natural logs.
+#'     The six parameters are:
+#'     
+#'     1. the age/size where selectivity first becomes 1.0, p[1], a positive
+#'     value within the range of bin values
+#'     
+#'     2. a modified inverse logit of the width of the plateau, typically 
+#'     -5 : 10, it is used to estimate the size/age where selectivity first 
+#'     begins to decline = peak2
+#'     
+#'     3. the steepness of the ascending limb, a modified inverse logit, used 
+#'     when calculating t1min and asc
+#'     
+#'     4. the steepness of the descending limb, a modified inverse logit, used 
+#'     when calculating t2min and dsc
+#'     
+#'     5. the selectivity of the first age/size class, a modified inverse logit, 
+#'     used when calculating asc
+#'     
+#'     6. the selectivity of the last age/size class,  a modified inverse logit, 
+#'     used when calculating dsc 
+#'     
+#'     The descending limb of any dome shaped selectivity curves imply that the 
+#'     fishing gear used is unable to collect all representatives of the larger 
+#'     or older classes. The predicted numbers of smaller or younger animals, 
+#'     that are only partially selected, are inflated because of the partial 
+#'     selection. If any larger or older animals are, in fact, caught, then the 
+#'     same inflation can happen to those animals as a result of the partial 
+#'     selection implied by the dome shape. Small and young animals weigh 
+#'     very little, the same cannot be said for the larger or older animals. 
+#'     Some people refer to the extra biomass this phenomenon can imply as 
+#'     'ghost biomass', even though it might be real. Whatever the case, when 
+#'     using dome shaped selectivity it is best to be aware of this issue and 
+#'     to be cautious about how this is interpreted. The 20* terms in the J1 
+#'     and J2 factors are required to force the joins to be as effective as
+#'     required (see Methot and Wetzel 2013). 
+#'
+#' @param p a vector of six parameters.
+#' @param bins a vector of the mean of nb age/size classes
+#'
+#' @return a vector of selectivities
+#' @export
+#' 
+#' @references Methot, R.D. and C.R, Wetzel (2013) Stock synthesis: A biological 
+#'     and statistical framework for fish stock assessment and fishery management. 
+#'     Supplementary material, Appendix A. Equs A1.30 - A1.34. 
+#'     \emph{Fisheries Research} 142:86-99.
+#'     
+#'     Hurtado-Ferro, F., Punt, A.E., and K.T. Hill (2014) Use of multiple 
+#'     selectivity patterns as a proxy for spatial structure. 
+#'     \emph{Fisheries Research} 158:102-115.
+#'
+#' @examples
+#' # from selex_length_example https://github.com/nmfs-ost/ss3-user-examples
+#'   p <- c(45.8546,-3.18064,5.308,1.699,-999,0.75363)
+#'   bins <- seq(11,99,2)
+#'   sel <- domeSS3(p,bins)
+#'   plot(bins,sel,type="l",xlab="Age",ylab="Selectivity",lwd=2)
+domeSS3 <- function(p,bins) {
+  nb <- length(bins)
+  lw <- bins[2] - bins[1]
+  peak2 <- p[1] + lw + (0.99 * bins[nb] - p[1] - lw)/(1+exp(-p[2]))
+  J1 <- 1/(1 + exp(-20*(bins - p[1])/(1 + abs(bins - p[1]))))
+  J2 <- 1/(1 + exp(-20*(bins - peak2)/(1 + abs(bins - peak2))))
+  tlmin <- exp((-(bins[1] - p[1])^2)/exp(p[3]))
+  t2min <- exp((-(bins[nb] - peak2)^2)/exp(p[4]))
+  asc <- (1/(1 + exp(-p[5]))) + (1 - (1/(1 + exp(-p[5])))) * 
+    ((exp((-(bins - p[1])^2)/exp(p[3])) - tlmin)/(1 - tlmin))
+  dsc <- 1 + ((1/(1 + exp(-p[6]))) - 1) * 
+    (exp((-(bins - peak2)^2)/exp(p[4])) - 1)/(t2min - 1)
+  sel <- asc * (1 - J1) + J1*((1 - J2) + J2 * dsc)
+  return(sel)
+} # end of domess3
+
+
 #' @title endpart extracts the last part of an R path listing
 #' 
 #' @description endpart takes a path listing and extracts the final part. This
@@ -278,6 +445,60 @@ fixstarter <- function(directory,findtext="use init value",toscreen=FALSE) {
    write(starter,file=startfile)
    cat("New ",startfile,"  written \n")
 }  # end of projstarter
+
+#' @title getalcomp extracts any conditional age-at-length data from ss.dat
+#' 
+#' @description getalcomp extracts any conditional age-at-length data directly 
+#'     from the SS3 dat file. It produces an array of length-bin x age-bin X
+#'     year ready for eahc to be plotted. 
+#'
+#' @param store this is the full path to the directory holding all the scenario 
+#'     sub-directories.
+#' @param analysis is a character string identifying the particular scenario
+#'     being explored. The dat file to be examined is held as 'analysis.dat'.
+#'
+#' @returns  two arrays of the female and make age-len key data as arrays of
+#'     length-bins x age-bins x years by gender plus the fleet names with 
+#'     conditional age-at-length data. If no such data then NULL
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#'   store <-  "c:/Users/userA/SS3/EG/afish/"
+#'   analysis <- "sp_area_1"
+#'   # inside sp_area_1 there needs to be a sp_area_1.dat file
+#'   allcomp <- getalcomp(store-store,analysis=analysis)
+#' }
+getalcomp <- function(store,analysis) {
+  destination <- pathtopath(store,analysis)
+  datfile <- pathtopath(destination,paste0(analysis,".dat"))
+  dat <- SS_readdat_3.30(file=datfile,verbose = FALSE,section = NULL)
+  nsex <- dat$Nsexes
+  agebins <- dat$agebin_vector
+  nages <- length(agebins)
+  agecomp <- dat$agecomp
+  pickpos <- which(agecomp$Lbin_lo > 0)
+  if (length(pickpos) > 0) {
+    compage <- agecomp[pickpos,]
+    activefleets <- sort(unique(compage$fleet))
+    fleets <- dat$fleetnames[activefleets]
+    sexes <- sort(unique(compage$sex))
+    yrs <- sort(unique(compage[,"year"]))
+    nyr <- length(yrs)
+    startcol <- which(colnames(compage) == "Nsamp")
+    pickF <- grep("f",colnames(compage))
+    pickF <- pickF[which(pickF > startcol)]
+    pickM <- grep("m",colnames(compage))
+    pickM <- pickM[which(pickM > startcol)]
+    othercols <- which(colnames(compage) %in% c("year","Lbin_lo","fleet","sex"))
+    compfem <- compage[,c(othercols,pickF)]
+    compmal <- compage[,c(othercols,pickM)]
+    invisible(list(compfem=compfem,compmal=compmal,fleets=fleets))
+  } else {
+    print("No conditional Age-at-Length data found.")
+    invisible(NULL)
+  }
+} # end of getalcomp
 
 #' @title getagelenkeys extracts data from SS3 data file about age composition
 #' 
@@ -982,6 +1203,160 @@ pathtype <- function(inpath) {
   return(typepath)
 } # end of pathtype
 
+#' @title plotagecomp literally plots the conditional age-at-length data 
+#' 
+#' @description plotagecomp generates a plot of the conditional age-at-length
+#'     data where each data point is jittered so that a direct impression of 
+#'     the density of observations is presented. More than 20 plots in a single
+#'     panel would get too busy, it is up to the user to control the flow of 
+#'     the number of years of data sent to the function.
+#'
+#' @param compsex the array of lengthbin x agebins x year for a given gender
+#' @param gender a character string denotig the gender being illustrated
+#' @param fleet which fleet is the data representing, a character string
+#' @param rescale a value needed to scale the size of the circle symbol 
+#'     representing the squareroot of the number of observations for a given
+#'     length and age the default value of 0.6 may need to be changed to suit
+#'     one's own data
+#' @param console should the plot go to the console or to a file. default=TRUE
+#' @param plotdir the full path to the plotting directory if a file is to be 
+#'     saved.
+#' @param plotout should a plot be produced or just output the alcomp? defualt
+#'     = TRUE
+#'     
+#' @seealso{
+#'     \link{plotagelen}, \link{getalcomp}
+#' }
+#'
+#' @returns invisibly a list of the filename used and a copy of the 3D array
+#'    of age-length-year developed.
+#' @export
+#'
+#' @examples
+#' print("wait on example data - wait a while!")
+#' # compsex=compfem; gender="Female"; fleet=fleets[1]; rescale=0.6;
+#' # console=TRUE;plotdir="";plotout=TRUE 
+plotagecomp <- function(compsex,gender,fleet,rescale=0.6,console=TRUE,
+                        plotdir="",plotout=TRUE) {
+  tmp <- colnames(compsex)
+  pickcut <- which(tmp == "Lbin_lo")
+  tmp <- tmp[-(1:pickcut)]
+  tmp <- gsub("m","",tmp)
+  tmp <- gsub("f","",tmp)
+  agebins <- as.numeric(tmp)
+  nages <- length(agebins)  
+  yrs <- sort(unique(compsex[,"year"]))
+  nyr <- length(yrs)
+  lenbins <- sort(unique(compsex$Lbin_lo))
+  nlbins <- length(lenbins)
+  alcomp <- array(0,dim=c(nlbins,nages,nyr),
+                  dimnames=list(lenbins,agebins,yrs))
+  for (yr in 1:nyr) { # yr = 1
+    pickyr <- which(compsex[,"year"] == yrs[yr])
+    tmp <- compsex[pickyr,]
+    numcol <- ncol(tmp)
+    if (nrow(tmp)  < nlbins) {
+      lens <- match(tmp[,"Lbin_lo"],lenbins)
+    } else {
+      lens <- 1:nlbins
+    }
+    for (i in 5:numcol) alcomp[lens,(i-4),yr] <- tmp[,i]
+  }
+  filen=""
+  if (plotout) {
+    radcomp <- sqrt(alcomp)
+    scale <- max(radcomp,na.rm=TRUE)
+    radcomp <- radcomp/scale
+    xvect <- rep(agebins,nlbins)
+    yvect <- rep(lenbins,nages)
+    if (!console) {
+      fileout <- paste0("Scaled_AgeCompdata_",fleet,"_",gender,".png")
+      filen <- pathtopath(plotdir,fileout)
+    }
+    plotprep(width=10, height=10,newdev=TRUE,filename=filen,verbose=FALSE)
+    parset(plots=pickbound(nyr),outmargin=c(1,1.3,0.1,0.1),
+           margin=c(0.3,0.35,0.05,0.05),byrow=FALSE)
+    for (i in 1:nyr) { # i = 1
+      agelen <- radcomp[,,i]  
+      agelen[agelen == 0] <- NA
+      nobs <- sum(alcomp[,,i],na.rm=TRUE)
+      label <- paste0(yrs[i],"_",nobs)
+      plot(xvect,yvect,type="n",xlab="",ylab=label,panel.first=grid())
+      for (age in 1:nages) {
+        if (sum(agelen[,age],na.rm=TRUE) > 0) {
+          symbols(rep((age-1),nlbins),lenbins,circles=(agelen[,age]*rescale),
+                  inches=FALSE,bg=rgb(1, 0, 0, 0.5), fg = "grey",
+                  xlab="",ylab="",add=TRUE)
+        }
+      }
+    }
+    label <- paste0("Age ",gender," ",fleet)
+    mtext(label,side=1,line=-0.5,outer=TRUE,cex=1.25,font=7)
+    mtext("Length",side=2,line=0,outer=TRUE,cex=1.25,font=7)
+  }
+  invisible(list(filen=filen,alcomp=alcomp))
+} # end of plotagecomp
+
+#' @title plotagelen plots a jittered version of conditional age-at-length data
+#' 
+#' @description plotagelen uses base::jitter to plot any conditional 
+#'     age-at-length observed data for each year. r4ss has replaced the usual 
+#'     jitter function hence the need for the namespace. 
+#' 
+#'
+#' @param alcomp the output from plotagecomp an array of length x age x year
+#' @param gender a character label for the plots, usually 'Male', 'Female', or
+#'     'mixed'
+#' @param fleet which fleet, again for a plot label, either a number of name
+#' @param console should the plot go to the console or a file, default=TRUE
+#' @param plotdir the full path to the directory in which to store the file, 
+#'     default = ''
+#'     
+#' @seealso{
+#'     \link{plotagecomp}, \link{getalcomp}
+#' }
+#' @returns nothing but it does generate a plot
+#' @export
+#'
+#' @examples
+#' print("Wait on data sets")
+#' # alcomp=alfem;gender="Female";fleet=fleets[1];console=TRUE;plotdir=""
+plotagelen <- function(alcomp,gender,fleet,console=TRUE,plotdir="") {
+  inmat <- alcomp[,,1]
+  ages <- as.numeric(colnames(inmat))
+  lght <- as.numeric(rownames(inmat))
+  yrs <- as.numeric(dimnames(alcomp)[[3]])
+  nyr <- length(yrs)
+  filen=""
+  if (!console) {
+    fileout <- paste0("AgeLenKey_",fleet,"_",gender,".png")
+    filen <- pathtopath(plotdir,fileout)
+  }
+  plotprep(width=10, height=10,newdev=TRUE,filename=filen,verbose=FALSE)
+  parset(plots=pickbound(nyr),outmargin=c(1,1.3,0.1,0.1),
+         margin=c(0.3,0.35,0.05,0.05),byrow=FALSE)
+  for (yr in 1:nyr) {
+    inmat <- alcomp[,,yr]
+    tot <- colSums(inmat)
+    pickcol <- which(tot > 0)
+    xvect <- NULL
+    yvect <- NULL
+    for (i in 1:length(pickcol)) { # i = 1
+      xvect <- c(xvect,rep(ages[pickcol[i]],tot[pickcol[i]]))
+      yvect <- c(yvect,rep(lght,inmat[,pickcol[i]]))
+    }
+    nobs <- length(xvect)
+    label <- paste0(yrs[yr],"_",nobs)
+    plot(base::jitter(xvect),base::jitter(yvect),type="p",pch=1,cex=1,
+         xlim=c(ages[1],ages[length(ages)]),
+         ylim=c(lght[1],lght[length(lght)]),xlab="",ylab=label,
+         panel.first = grid())
+  }
+  label <- paste0("Age ",gender," ",fleet)
+  mtext(label,side=1,line=-0.5,outer=TRUE,cex=1.25,font=7)
+  mtext("Length",side=2,line=0,outer=TRUE,cex=1.25,font=7)
+  invisible(filen)
+} # end of plotagelen
 
 #' @title plotagelenkey plots all age-length keys derived form getagelenkeys
 #' 

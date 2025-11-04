@@ -48,12 +48,12 @@ NULL
 
 #' @importFrom  r4ss SS_fitbiasramp SSMethod.TA1.8 SSMethod.Cond.TA1.8
 #' @importFrom r4ss SS_readdat_3.30
-#' @importFrom grDevices dev.cur dev.new dev.off graphics.off png
+#' @importFrom grDevices dev.cur dev.new dev.off graphics.off png rgb
 #' @import graphics
 #' @importFrom utils read.csv tail askYesNo str head write.table
 #' @importFrom codeutils pathtopath %ni% makelist which.closest getmax printV
 #' @importFrom codeutils expandcolumns 
-#' @importFrom hplot plotnull plotprep parset pickbound plotcompdata
+#' @importFrom hplot plotnull plotprep parset pickbound plotcompdata 
 #' @importFrom makehtml setuphtml addtable addplot make_html
 #' @importFrom stats loess qlnorm aggregate
 NULL

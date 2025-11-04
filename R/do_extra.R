@@ -30,45 +30,49 @@
 #' @examples
 #' # syntax:
 #' # do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
-#' #          store=store,compare=c("BC-priors","BC-noage"))
+#' #          store=store)
 do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
                      paths=NULL,verbose=TRUE) {
   #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
-  #  verbose=TRUE; compare=NULL; paths=NULL;
+  #  verbose=TRUE; compare=c("GAR_SG_DEV","GAR_SG_DEV_05"); paths=NULL;
   setuphtml(extradir)
-  # age-Length keys
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
   dat <- SS_readdat_3.30(file=datfile,verbose = FALSE,section = NULL)
-  if (!plotreport$growthvaries) {
-    LAA <- plotreport$growthseries[1,]
-    
-  }
-  if (dat$N_agebins > 0) {
-    outscene <- suppressWarnings(getagelenkeys(dat))
-    console <- FALSE
-    verbose <- FALSE
-    if (!is.null(outscene)) {
-      if (outscene$nscene > 8) {
-        nscene <- outscene$nscene
-        iter <- ceiling(outscene$nscene / 8)
-        pickscene <- c(1:8)
-        for (i in 1:iter) {
-          plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=pickscene,pch=1,
-                        pchcex=1.25,pchcol=2,console=console,verbose=verbose)
-          pickscene <- pickscene + 8
-          pickpick <- which(pickscene <= nscene)
-          pickscene <- pickscene[pickpick]
-          if ((i < iter) & (console)) readline(prompt="Press [enter] to continue")
-        }
-      } else {
-        plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=NULL,pch=1,
-                      pchcex=1.25,pchcol=2,console=console,verbose=verbose)
-      }
-    }
-  } else {
-    warning(cat("No conditional age-at-length data found for the primary analysis \n"))
-  }
+  console <- FALSE
+  # age-Length keys
+  # destination <- pathtopath(store,analysis)
+  # datfile <- pathtopath(destination,paste0(analysis,".dat"))
+  # dat <- SS_readdat_3.30(file=datfile,verbose = FALSE,section = NULL)
+  # if (!plotreport$growthvaries) {
+  #   LAA <- plotreport$growthseries[1,]
+  #   
+  # }
+  # if (dat$N_agebins > 0) {
+  #   outscene <- suppressWarnings(getagelenkeys(dat))
+  #   console <- FALSE
+  #   verbose <- FALSE
+  #   if (!is.null(outscene)) {
+  #     if (outscene$nscene > 8) {
+  #       nscene <- outscene$nscene
+  #       iter <- ceiling(outscene$nscene / 8)
+  #       pickscene <- c(1:8)
+  #       for (i in 1:iter) {
+  #         plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=pickscene,pch=1,
+  #                       pchcex=1.25,pchcol=2,console=console,verbose=verbose)
+  #         pickscene <- pickscene + 8
+  #         pickpick <- which(pickscene <= nscene)
+  #         pickscene <- pickscene[pickpick]
+  #         if ((i < iter) & (console)) readline(prompt="Press [enter] to continue")
+  #       }
+  #     } else {
+  #       plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=NULL,pch=1,
+  #                     pchcex=1.25,pchcol=2,console=console,verbose=verbose)
+  #     }
+  #   }
+  # } else {
+  #   warning(cat("No conditional age-at-length data found for the primary analysis \n"))
+  # }
   # tables tab-------------------------------
   if (verbose) cat("Generating tables tab \n")
   outsummary <- summarizeSS3(plotreport)
@@ -99,6 +103,7 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
                             startyr=2,console=FALSE)
   addplot(filen=filename,rundir=extradir,category="summary",
           caption="Summary plot of dynamics.")
+#  times <- plotreport$timeseries
   # selectivity Tab-------
   if (verbose) cat("Generating selectivity tab \n")
   filename <- plotselex(plotreport,sex="Female",upbound=0,
@@ -147,9 +152,51 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
   addtable(allcatch,filen=filename,rundir=extradir,category="catch",
            caption=paste0("Reported Catch by Fleet. Recreational catches ",
                           "are interpolaterd netween surveys.")) 
+  # CAAL tab-----------------------------
+  if (verbose) cat("Generating CAAL tab \n")
+  compdat <- getalcomp(store=store,analysis=analysis)
+  if (!is.null(compdat)) {
+    compfem <- compdat$compfem
+    compmal <- compdat$compmal
+    fleets <- compdat$fleets    
+    nfleet <- length(fleets)
+    for (i in 1:nfleet) {
+      alout <- plotagecomp(compsex=compfem,gender="Female",fleet=fleets[i],
+                           rescale=0.6,console=FALSE,plotdir=extradir,
+                           plotout=TRUE)
+      filename <- alout$filen
+      addplot(filen=filename,rundir=extradir,category="CAAL",
+              caption=paste0("Conditional Age-at_length data by year for ",
+                             "females for fleet ",fleets[i]))    
+      alfem <- alout$alcomp
+      filename <- plotagelen(alcomp=alfem,gender="Female",fleet=fleets[i],
+                           console=FALSE,plotdir=extradir)
+      addplot(filen=filename,rundir=extradir,category="CAAL",
+              caption=paste0("Conditional Age-at_length data by year for ",
+                             "females for fleet ",fleets[i],", jittered to ",
+                             "indicate density of data.")) 
+      
+      alout <- plotagecomp(compsex=compmal,gender="Male",fleet=fleets[i],
+                           rescale=0.6,console=FALSE,plotdir=extradir,
+                           plotout=TRUE)
+      filename <- alout$filen
+      addplot(filen=filename,rundir=extradir,category="CAAL",
+              caption=paste0("Conditional Age-at_length data by year for ",
+                             "males for fleet ",fleets[i]))    
+      almal <- alout$alcomp
+      filename <- plotagelen(alcomp=almal,gender="Male",fleet=fleets[i],
+                             console=FALSE,plotdir=extradir)
+      addplot(filen=filename,rundir=extradir,category="CAAL",
+              caption=paste0("Conditional Age-at_length data by year for ",
+                             "males for fleet ",fleets[i],", jittered to ",
+                             "indicate density of data."))   
+    }
+  } else {
+    if (verbose) cat("No conditional age-st-length data to plot. \n")
+  }
   # Age-composition of first scenario
   # agecomp flt1-------------------------------- 
-  if (dat$N_agebins > 0) {
+  if (nrow(plotreport$agedbase) > 0) {
     if (verbose) cat("Generating agecomp tab \n")
     fleetnames <- plotreport$FleetNames
     ageprop1 <- getprops(plotreport$agedbase,fleetnames=fleetnames,
@@ -173,10 +220,10 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
                 caption=paste0("Comparison of Fit to Age Comps in each year by ",
                                flname))
       }
-    } else { warning(cat("No age composition data to plot.  \n"))
+    } else { cat("No age composition data to plot.  \n")
   }
   # lengthcomp flt1-----------------
-  if (dat$N_lbins > 0) {  
+  if (nrow(plotreport$lendbase) > 0) {  
     if (verbose) cat("Generating tables tab \n")
     fleetnames <- plotreport$FleetNames  
     lenprop <- getprops(plotreport$lendbase,fleetnames=fleetnames,
@@ -246,7 +293,7 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
         mixed <- t(lencomp[,7:(nlbin+6)])
         rownames(mixed) <- lbins; colnames(mixed) <- yrs 
         if (sum(colSums(mixed,na.rm=TRUE)) > 0) {
-          plotcompdata(compdata=expandcolumns(mixed),
+          details <- plotcompdata(compdata=expandcolumns(mixed),
                        analysis=analysis, ylabel="Counts",
                       console=console,outdir=extradir)
           addplot(filen=details$filename,rundir=extradir,category="LenComp",
@@ -264,7 +311,7 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
     if (verbose) cat("Generating comparison tab \n")
     compscenes <- getreplists(store=store,scenes=compare,paths=paths,
                               listname="plotreport")
-    if (compscenes$dimcheck) {
+    if (!compscenes$dimdiff) {
       filename <- "Comparison_of_scenarios.png"
       projout <- projreceffects(compscenes=compscenes,fileout=filename,
                                 rundir=extradir,legcex=1.0,startyr=2,
@@ -288,11 +335,11 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
     addplot(filen=filename,rundir=extradir,category="compare",
             caption="Comparison of CPUE. Note CI are from 1st scenario only.")
     # agecomp comparisons  
-    if (dat$N_agebins > 0) {
+    if (nrow(compscenes$total[[1]]$agedbase) > 0) {
       if (length(compscenes$total) > 2) {
         warning("Age proportions of only first two scenarios will be used \n")
       }
-      if (compscenes$dimcheck) {
+      if (!compscenes$dimdiff) {
         fleetnames <- plotreport$FleetNames
         ageprop1 <- getageprops(compscenes$total[[1]])
         ageprop2 <- getageprops(compscenes$total[[2]])
@@ -319,6 +366,8 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
       } else { warning(cat("Age comparisons not made Scenarios have different ",
                            "structures.  \n"))
       }
+    } else {
+      cat("Simple Age-composition data not used")
     }
     # further table of comparisons
     if (nrow(compscenes$total[[1]]$parameters) == 

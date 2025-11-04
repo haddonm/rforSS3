@@ -492,3 +492,115 @@ lendbase <- plotreport$lendbase
 
 lenprop <- getprops(lendbase)
 
+
+# get both L50 from a domed selectivity curve
+library(rforSS3)
+library(codeutils)
+library(hplot)
+p <- c(10,15,10,40,-7,-1)
+
+ages <- 0:30
+sel <- domed(p,ages)
+
+plotprep(width=9, height = 5)
+parset()
+plot(ages,sel,type="l",lwd=2,col=1,ylim=c(0,1.05),yaxs="i",panel.first=grid())
+
+p <- c(10,15,10,40,-7,-1)
+finds50 <- function(p,bins) { # p=p; bins=0:30
+  nbin <- length(bins)
+  sel <- domed(p,bins)
+  pickE <- which(sel[1:p[1]] <= 0.5)
+  cl <- bins[2] - bins[1]
+  lowindex <- tail(pickE,1)
+  hiindex <- lowindex + 1
+  lowv <- sel[lowindex]
+  hiv <- sel[hiindex]
+  deltabin <- 0.5 - lowv
+  newbin <- bins[lowindex] + deltabin
+  bins2 <- c(bins[1:lowindex],newbin,bins[hiindex:nbin])
+  sel2 <- domed(p,bins2)
+  match(bins,bins2)
+  
+} # end of finds50
+
+finds50(p,bin=7)
+
+
+
+S <- domed(p,L=seq(0,30,1))
+
+p <- c(10,15,10,40,-7,-1)
+ages=0:30
+S <- domed(p,ages)
+
+plot1(0:30,S,lwd=2)
+
+
+optimize(f=finds50,interval=c(5,8),selfun=domed,p=p,maximum=FALSE,tol=1e-09)
+
+
+yrF <- optimize(matchC1,interval=c(0,maxF),M=M,cyr=obsC,
+                Nyr=Nt[,yr-1],sel=sel,waa=aaw,
+                maximum=FALSE,tol=1e-09)$minimum
+
+lines(0:10,sel,lwd=2,col=4)
+
+
+domed <- function(p, L) { # p=p; L = seq(0:10)
+  nL <- length(L)
+  J1 <- 1/(1 + exp(-20*((L - p[1])/(1 + abs(L - p[1])))))
+  J2 <- 1/(1 + exp(-20*((L - p[2])/(1 + abs(L - p[2])))))   
+  comp1 <- 1/(1 + exp(-p[5])) # inverse logit forced to be 0 - 1
+  comp2 <- exp((-(L - p[1])^2)/p[3])
+  comp3 <- exp((-(L[1] - p[1])^2)/p[3])
+  asc <- comp1 + (1 - comp1) * ((comp2 - comp3)/(1 - comp3))
+  comp4 <- 1/(1 + exp(-p[6])) # inverse logit 
+  comp5 <- exp((-(L - p[2])^2)/p[4])
+  comp6 <- exp((-(L[nL] - p[2])^2)/p[4])
+  dsc <- 1 + (comp4 - 1) * ((comp5 - 1)/(comp6 - 1))
+  sel <- (asc * (1 - J1)) + J1 * (1 - J2 + dsc * J2)
+  sel <- sel/max(sel) # to ensure a maximum = 1.0
+  return(sel)
+} # end of domed
+
+invlogit <- function(x) {
+  return(exp(-x)/(1 + exp(-x)))
+}
+
+yrs <- size24$Yr
+nyr <- length(yrs)
+lens <- seq(11,99,2)
+nl <- length(lens)
+lw <- lens[2]- lens[1]
+s1 <- size24[1,6:50]
+
+
+plot1(lens,s1)
+
+sel <- domed(p=c(45.85,46.79,5.308,1.699,-3.8,0.75363),L=lens)
+lines(lens,sel,lwd=2,col=2)
+
+invlogit(0.75363)
+
+invlogit(-3.18064)
+
+
+
+
+p <- c(45.8546,-3.18064,5.308,5.699,-999,-10)
+bins <- seq(11,99,2)
+sel <- domeSS3(p,bins)
+plot1(bins,sel,lwd=2)
+
+cbind(bins,round(sel,4))
+
+
+
+
+
+
+
+
+
+

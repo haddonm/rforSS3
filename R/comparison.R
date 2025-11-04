@@ -104,7 +104,7 @@ comparestats <- function(x) { # x = compscenes
   for (i in 2:nscen) { # i = 2
     namelike2 <- rownames(x1[[i]]$likes)
     pickL <- match(namelike2,likenames)
-    if (length(pickL != nlik)) warning(cat("Differeing number of likelihoods \n"))
+    if (length(pickL) != nlik) warning(cat("Differeing number of likelihoods \n"))
     likes[pickL,i] <- x1[[i]]$likes[,"values"]      
   }
   firstpar <- x1[[1]]$param
@@ -365,16 +365,16 @@ getreplists <- function(store,listname,scenes,paths=NULL,verbose=TRUE) {
     catches[[i]] <- projectedcatches(total[[i]])
     cpue[[i]] <- total[[i]]$cpue
   }
-  dimcheck <- TRUE  
+  dimdiff <- FALSE  
   if (nscen > 1) {
     catchdims <- sapply(catches,dim)
-    if (sum(catchdims[,1] - catchdims[,2]) != 0) dimcheck <-  FALSE
-    warning(cat("Dimensions for dynamics differ either in years or ",
-                "someother factor. Are you using CondAge@Len? ",
-                "Many of the comparison plots and table will fail \n"))
+    if (sum(catchdims[,1]) - sum(catchdims[,2]) != 0) dimdiff <- TRUE
+    if (dimdiff) warning(cat("Dimensions for dynamics differ either in years ",
+                             "or someother factor. Are you using CondAge@Len? ",
+                         "Many of the comparison plots and table will fail \n"))
   }
   return(list(timeseries=dyn,catches=catches,total=total,scenesum=scenesum,
-              scenes=scenes,dimcheck=dimcheck,cpue=cpue))
+              scenes=scenes,dimdiff=dimdiff,cpue=cpue))
 } # end of getreplists
 
 #' @title projectedcatches allows alternative SS3 model catches to be compared
@@ -523,6 +523,7 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   if (nscen > 1)
     for (i in 2:nscen) lines(yrs,depl[pickyrs,i],lwd=2,col=i)
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
+  abline(h=0.2,lwd=1,col=2,lty=3)
   mtext("(d) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end SSBdepl
   # plot instantaneous F rates
   total <- compscenes$total
