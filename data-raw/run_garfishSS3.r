@@ -53,7 +53,9 @@ if (endpart(store) == "garfish") { # GARFISH BASECASE  ----------------
                 "GAR_SG_mh",
                 "GAR_SG_DEV_05",
                 "GAR_SG_DEV_10",
-                "GAR_GSV_DEV")    # Natural Morality = 0.6
+                "GAR_GSV_DEV",
+                "GAR_GSV-mh",
+                "GSVbasecase")    # Natural Morality = 0.6
 } else {
   stop("Are you in the wrong directory? \n")
 }
@@ -72,7 +74,7 @@ print("will become the starter.ss file",quote=FALSE)
 }
 
 
-# sscopyto(origin=store,fromdir="SGBC-S75-M5",todir="SGBC-S75-M5-mh")
+# sscopyto(origin=store,fromdir="GAR_GSV_DEV",todir="GAR_GSV-mh")
 
 
 # now ensure that you have X.ctl, X.dat, X.par, X.for, and X.sta file in each
@@ -94,7 +96,7 @@ print("will become the starter.ss file",quote=FALSE)
 printV(basecase)
 
 
-item <- 2
+item <- 7
 getCase(index=item,basecase)   # this lists the basecase indices to the screen
 
 #executable <- c("SS","SS","SS","SS","SS","SS","SS3","SS3")
@@ -200,8 +202,9 @@ outlists <- rforSS3::do_extra(plotreport = plotreport,
                               extradir = extradir,
                               analysis = analysis,
                               store = store,
-                              compare = c("GAR_SG_mh","GAR_SG_DEV_05"),
-                              verbose = TRUE)
+                              compare = NULL, #c("GAR_GSV-mh","GAR_GSV_DEV"),
+                              verbose = TRUE,
+                              linear=TRUE)
 
 
 
@@ -1256,7 +1259,7 @@ dirExists(profile)
 SS3path <- pathtopath(calc,"ss3.exe")
 if (endpart(store) == "garfish") { # GARFISH BASECASE  ----------------
   basecase <- c("GAR_SG_mh",
-                "GAR_GSV_DEV")    # Natural Morality = 0.6
+                "GAR_SG_DEV")    # Natural Morality = 0.6
 } else {
   stop("Are you in the wrong directory? \n")
 }
@@ -1308,7 +1311,7 @@ alout <- plotagecomp(compsex=compfem,gender="Female",fleet=fleets[1],
 alfem <- alout$alcomp
 
 plotagelen(alcomp=alfem,gender="Female",fleet=fleets[1],console=TRUE,
-           plotdir="")
+           plotdir="",linear=TRUE)
 
 
 # do males
@@ -1320,14 +1323,14 @@ alout <- plotagecomp(compsex=compmal,gender="Male",fleet=fleets[1],
 
 
   
-alcomp <- alout$alcomp
+almal <- alout$alcomp
 
 console=TRUE
 gender="Female"
 fleet <- fleetnames[1] 
 
-plotagelen(alcomp=alcomp,gender="Female",fleet=fleetnames[1],console=TRUE,
-           plotdir="")
+plotagelen(alcomp=almal,gender="Male",fleet=fleets[1],console=TRUE,
+           plotdir="",linear=TRUE)
 
 
 

@@ -8,7 +8,7 @@ plotagecomp(
   compsex,
   gender,
   fleet,
-  rescale = 0.6,
+  rescale = 0,
   console = TRUE,
   plotdir = "",
   plotout = TRUE
@@ -17,14 +17,13 @@ plotagecomp(
 \arguments{
 \item{compsex}{the array of lengthbin x agebins x year for a given gender}
 
-\item{gender}{a character string denotig the gender being illustrated}
+\item{gender}{a character string denoting the gender being illustrated}
 
 \item{fleet}{which fleet is the data representing, a character string}
 
-\item{rescale}{a value needed to scale the size of the circle symbol
-representing the squareroot of the number of observations for a given
-length and age the default value of 0.6 may need to be changed to suit
-one's own data}
+\item{rescale}{if the default value fails to provide a statisfactory plot
+thenm enter a value here to obtain what's needed. The default = 0, in
+which case the number of age-bins is divided by 18, which usally works.}
 
 \item{console}{should the plot go to the console or to a file. default=TRUE}
 
@@ -47,7 +46,7 @@ the number of years of data sent to the function.
 }
 \examples{
 print("wait on example data - wait a while!")
-# compsex=compfem; gender="Female"; fleet=fleets[1]; rescale=0.6;
+# compsex=compfem[pickflt,]; gender="Female"; fleet=fleets[1]; rescale=0.0;
 # console=TRUE;plotdir="";plotout=TRUE 
 }
 \seealso{

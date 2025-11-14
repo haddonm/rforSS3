@@ -9,9 +9,10 @@ do_extra(
   extradir,
   analysis,
   store,
+  verbose = TRUE,
   compare = NULL,
   paths = NULL,
-  verbose = TRUE
+  linear = FALSE
 )
 }
 \arguments{
@@ -25,6 +26,9 @@ tables and plots. In my system = store + analysis + extra}
 \item{store}{the full path to the directory within which the analysis
 sub-directory is held}
 
+\item{verbose}{Should warnings and progress be reported to the console?
+default = TRUE.}
+
 \item{compare}{default = NULL. If multiple scenarios or analyses are to be
 compared if they are all stored in the same 'store' then this should be
 a character vector of which analyses to compare. If no
@@ -34,8 +38,8 @@ comparisons are to be made then leave as NULL.}
 compared then this should be a character vector of the full paths. If no
 comparisons are to be made then leave as NULL.}
 
-\item{verbose}{Should warnings and progress be reported to the console?
-default = TRUE.}
+\item{linear}{should linear models be fitted to conditional age-length data,
+default=FALSE}
 }
 \value{
 nothing but it does generate an array of plots and tables inserted

@@ -55,7 +55,7 @@ NULL
 #' @importFrom codeutils expandcolumns 
 #' @importFrom hplot plotnull plotprep parset pickbound plotcompdata 
 #' @importFrom makehtml setuphtml addtable addplot make_html
-#' @importFrom stats loess qlnorm aggregate
+#' @importFrom stats loess qlnorm aggregate lm coefficients
 NULL
 
 

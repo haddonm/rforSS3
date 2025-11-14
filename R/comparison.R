@@ -625,7 +625,7 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
   }
   if (console) { filen="" } else {
     scenes <- paste0(scenarios,collapse="_")
-    fileout <- paste0("AgeComp_Fits_",scenes,"_",fleetnames[whichfleet],".png")
+    fileout <- paste0(comptype,"_Comp_Fits_",scenes,"_",fleetnames[whichfleet],".png")
     filen <- pathtopath(rundir,fileout)
   }
   plotprep(width=10,height=height,newdev=FALSE,filename=filen,verbose=FALSE)
@@ -686,8 +686,12 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
     legend("bottomright",legend=leg,col=c(2,4,3,5),lwd=3,lty=c(1,1,2,2),
            cex=1.2,bty="n")
   } else {
-    legend("bottomright",legend=leg[1:2],col=c(2,4),lwd=3,lty=c(1,1),
-           cex=1.2,bty="n")
+    if (namedims[[3]] == "mixed") {
+      # do nothing
+    } else {
+      legend("bottomright",legend=leg[1:2],col=c(2,4),lwd=3,lty=c(1,1),
+             cex=1.2,bty="n")
+    }
   }
   mtext(comptype,side=1,outer=TRUE,cex=1.2,line=-0.2)
   mtext(paste0("Proportion for Fleet ",fleetnames[whichfleet]),side=2,

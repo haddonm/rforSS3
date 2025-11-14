@@ -4,7 +4,7 @@
 \alias{plotagelen}
 \title{plotagelen plots a jittered version of conditional age-at-length data}
 \usage{
-plotagelen(alcomp, gender, fleet, console = TRUE, plotdir = "")
+plotagelen(alcomp, gender, fleet, console = TRUE, plotdir = "", linear = FALSE)
 }
 \arguments{
 \item{alcomp}{the output from plotagecomp an array of length x age x year}
@@ -18,6 +18,8 @@ plotagelen(alcomp, gender, fleet, console = TRUE, plotdir = "")
 
 \item{plotdir}{the full path to the directory in which to store the file,
 default = ''}
+
+\item{linear}{add a linear model y on x to the plot, default = FALSE}
 }
 \value{
 nothing but it does generate a plot

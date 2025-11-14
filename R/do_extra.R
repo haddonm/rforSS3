@@ -22,6 +22,8 @@
 #' @param paths If different locations are used to store the analyses to be 
 #'     compared then this should be a character vector of the full paths. If no 
 #'     comparisons are to be made then leave as NULL. 
+#' @param linear should linear models be fitted to conditional age-length data,
+#'     default=FALSE
 #'
 #' @returns nothing but it does generate an array of plots and tables inserted
 #'     into extradir
@@ -31,10 +33,10 @@
 #' # syntax:
 #' # do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
 #' #          store=store)
-do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
-                     paths=NULL,verbose=TRUE) {
+do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
+                     compare=NULL,paths=NULL,linear=FALSE) {
   #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
-  #  verbose=TRUE; compare=c("GAR_SG_DEV","GAR_SG_DEV_05"); paths=NULL;
+  #  verbose=TRUE; compare=NULL; paths=NULL;linear=FALSE
   setuphtml(extradir)
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
@@ -100,14 +102,20 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
   filename <- paste0(analysis,"_summary.png")
   projout <- projreceffects(compscenes=compscenes,fileout=filename,
                             rundir=extradir,legcex=1.0,
-                            startyr=2,console=FALSE)
+                            startyr=2,console=console)
   addplot(filen=filename,rundir=extradir,category="summary",
           caption="Summary plot of dynamics.")
+  dyn <- cbind(projout$spawnB,projout$totalC,projout$recruits,projout$depl)
+  colnames(dyn) <- c("spawnB","totalC","recruits","depletion")
+  filename <- paste0(analysis,"_alldynamics.csv")
+  addtable(round(dyn,3),filen=filename,rundir=extradir,
+           category="summary",
+           caption="Predicted dynamics including the projections.")
 #  times <- plotreport$timeseries
   # selectivity Tab-------
   if (verbose) cat("Generating selectivity tab \n")
   filename <- plotselex(plotreport,sex="Female",upbound=0,
-                        console=FALSE,rundir=extradir)
+                        console=console,rundir=extradir)
   mixsex <- FALSE
   if (length(grep("mixed",filename))) {
     mixsex <- TRUE
@@ -120,7 +128,7 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
   again <- grep("mixed",filename)
   if (!mixsex) {
     filename <- plotselex(plotreport,sex="Male",upbound=0,
-                          console=FALSE,rundir=extradir)
+                          console=console,rundir=extradir)
     addplot(filen=filename,rundir=extradir,category="selectivity",
             caption="Male selectivity for each time-block.")
   }
@@ -128,7 +136,7 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
   if (verbose) cat("Generating CPUE tab \n")
   cpue <- plotreport$cpue
   filename <- altcpueplot(plotreport$cpue,analysis=analysis,
-                          rundir=extradir,height=8,CI=TRUE,console=FALSE)
+                          rundir=extradir,height=8,CI=TRUE,console=console)
   addplot(filen=filename,rundir=extradir,category="CPUE",
           caption="Alternative CPUE plot and residuals for each fleet.")
   filename <- "CPUE-table-from-plotreport.csv"
@@ -142,16 +150,17 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
                          verbose=FALSE)
   flname <- colnames(catches)
   filename <- plotss3catches(catches,extradir=extradir,analysis=analysis,
-                             console=FALSE)
+                             console=console)
   addplot(filen=filename,rundir=extradir,category="catch",
           caption=paste0("Reported catches by Year and fleet.",
-                         " Recreational catches are interpolated between surveys"))    
+                   " Recreational catches are interpolated between surveys",
+                         " The red line in lowe plot is a loess curve"))    
   
   filename <- paste0(analysis,"_Catch-by-Fleet.csv")
   allcatch <- cbind(catches,total=rowSums(catches,na.rm=TRUE))
   addtable(allcatch,filen=filename,rundir=extradir,category="catch",
            caption=paste0("Reported Catch by Fleet. Recreational catches ",
-                          "are interpolaterd netween surveys.")) 
+                          "are interpolated netween surveys.")) 
   # CAAL tab-----------------------------
   if (verbose) cat("Generating CAAL tab \n")
   compdat <- getalcomp(store=store,analysis=analysis)
@@ -160,36 +169,40 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
     compmal <- compdat$compmal
     fleets <- compdat$fleets    
     nfleet <- length(fleets)
-    for (i in 1:nfleet) {
-      alout <- plotagecomp(compsex=compfem,gender="Female",fleet=fleets[i],
-                           rescale=0.6,console=FALSE,plotdir=extradir,
-                           plotout=TRUE)
+    for (i in 1:nfleet) { # i=1
+      pickflt <- which(compfem$fleet == i)
+      alout <- plotagecomp(compsex=compfem[pickflt,],gender="Female",
+                           fleet=fleets[i],rescale=0.0,console=console,
+                           plotdir=extradir,plotout=TRUE)
       filename <- alout$filen
       addplot(filen=filename,rundir=extradir,category="CAAL",
               caption=paste0("Conditional Age-at_length data by year for ",
                              "females for fleet ",fleets[i]))    
       alfem <- alout$alcomp
       filename <- plotagelen(alcomp=alfem,gender="Female",fleet=fleets[i],
-                           console=FALSE,plotdir=extradir)
+                           console=FALSE,plotdir=extradir,linear=linear)
+      
       addplot(filen=filename,rundir=extradir,category="CAAL",
               caption=paste0("Conditional Age-at_length data by year for ",
                              "females for fleet ",fleets[i],", jittered to ",
                              "indicate density of data.")) 
-      
-      alout <- plotagecomp(compsex=compmal,gender="Male",fleet=fleets[i],
-                           rescale=0.6,console=FALSE,plotdir=extradir,
-                           plotout=TRUE)
-      filename <- alout$filen
-      addplot(filen=filename,rundir=extradir,category="CAAL",
-              caption=paste0("Conditional Age-at_length data by year for ",
-                             "males for fleet ",fleets[i]))    
-      almal <- alout$alcomp
-      filename <- plotagelen(alcomp=almal,gender="Male",fleet=fleets[i],
-                             console=FALSE,plotdir=extradir)
-      addplot(filen=filename,rundir=extradir,category="CAAL",
-              caption=paste0("Conditional Age-at_length data by year for ",
-                             "males for fleet ",fleets[i],", jittered to ",
-                             "indicate density of data."))   
+      if (!is.null(compmal)) {
+        pickflt <- which(compmal$fleet == i)
+        alout <- plotagecomp(compsex=compmal[pickflt,],gender="Male",
+                             fleet=fleets[i],rescale=0.0,console=FALSE,
+                             plotdir=extradir,plotout=TRUE)
+        filename <- alout$filen
+        addplot(filen=filename,rundir=extradir,category="CAAL",
+                caption=paste0("Conditional Age-at_length data by year for ",
+                               "males for fleet ",fleets[i]))    
+        almal <- alout$alcomp
+        filename <- plotagelen(alcomp=almal,gender="Male",fleet=fleets[i],
+                               console=FALSE,plotdir=extradir,linear=linear)
+        addplot(filen=filename,rundir=extradir,category="CAAL",
+                caption=paste0("Conditional Age-at_length data by year for ",
+                               "males for fleet ",fleets[i],", jittered to ",
+                               "indicate density of data."))  
+      }
     }
   } else {
     if (verbose) cat("No conditional age-st-length data to plot. \n")
@@ -231,19 +244,19 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
     agg <- lenprop$agg
     fleets <- sort(unique(agg[,"Fleet"]))
     nfleet <- length(fleets)
-    for (fl in 1 : nfleet) { # fl = 1
+    for (fl in 1 : nfleet) { # fl = 2
       whichfleet <- fleets[fl]
       flname <- fleetnames[whichfleet]
       filename <- plotaggage(agg1=lenprop$agg,
                              whichfleet=whichfleet,fleetname=flname,
-                             comptype="Len",console=FALSE,rundir=extradir,
+                             comptype="Len",console=console,rundir=extradir,
                              scenarios=analysis)
       addplot(filen=filename,rundir=extradir,category="LenComp",
               caption=paste0("Comparison of Fit to Len Comps aggregated ",
                              "by Year and ",flname,"."))    
       
-      filename <- plotageprops(agecomp1=lenprop,whichfleet=1,comptype="Len",
-                               console=FALSE,rundir=extradir,scenarios=compare) 
+      filename <- plotageprops(agecomp1=lenprop,whichfleet=fl,comptype="Len",
+                               console=console,rundir=extradir,scenarios=compare) 
       addplot(filen=filename,rundir=extradir,category="LenComp",
               caption=paste0("Comparison of Fit to Len Comps in each year by ",
                              flname))
@@ -260,7 +273,7 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
       flnames <- paste0(gender[1],lbins)
       mlnames <- paste0(gender[2],lbins)
       sexes <- unique(lencomp[,"sex"])
-      yrs <- lencomp[,"year"]
+      yrs <- sort(unique(lencomp[,"year"]))
       if (sexes > 1) { # sexes identified
         pickL <- which(colnames(lencomp) %in% c(flnames,mlnames))
         if ((nlbin * 2) != length(pickL)) {
@@ -290,7 +303,10 @@ do_extra <- function(plotreport,extradir,analysis,store,compare=NULL,
           plotnull(msg="No male length data")
         }  
       } else { # end of if sexes > 1 loop
-        mixed <- t(lencomp[,7:(nlbin+6)])
+        pickfl <- which(lencomp$fleet == fl)
+        tmp <- lencomp[pickfl,]
+        yrs <- sort(unique(tmp[,"year"]))
+        mixed <- t(lencomp[pickfl,7:(nlbin+6)])
         rownames(mixed) <- lbins; colnames(mixed) <- yrs 
         if (sum(colSums(mixed,na.rm=TRUE)) > 0) {
           details <- plotcompdata(compdata=expandcolumns(mixed),

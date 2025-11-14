@@ -597,8 +597,137 @@ cbind(bins,round(sel,4))
 
 
 
+comp <- alfem[,,20]
+
+lenbins <- as.numeric(rownames(comp))
+agebins <- as.numeric(colnames(comp))
+nages <- length(agebins)
+sumbyage <- colSums(comp,na.rm=TRUE)
+xvect <- NULL
+yvect <- NULL
+for (i in 1:nages) {
+  xvect <- c(xvect,rep(agebins[i],sumbyage[i]))
+  yvect <- c(yvect,rep(lenbins,comp[,i]))
+}
+
+lens <- sort(unique(MQMF::vB(p=c(35,0.5,2),xvect)))
+mod <- lm(yvect ~ xvect)
+plotprep(width=9,height=5)
+parset()
+plot(base::jitter(xvect,factor=0.5),base::jitter(yvect,factor=0.5),type="p",
+     cex=1.0,pch=1,ylim=c(0,lenbins[length(lenbins)]))
+abline(mod,lwd=2,col=2)
 
 
+# TEST do_extra-----------------------
+
+library(makehtml)
+library(rforSS3)
+library(r4ss)
+library(codeutils)
+library(hplot)
+ddir <- getDBdir()
+wdir <- pathtopath(ddir,"/A_CodeR/SA-SS3/")
+source(pathtopath(wdir,"ss3_utilities.R")) 
+options("show.signif.stars"=FALSE,"stringsAsFactors"=FALSE,
+        "max.print"=50000,"width"=240)
+
+calc <- pathtopath(wdir,"HAB/calc/")
+pathSS3 <- "C:/Users/malcolmhaddon/Dropbox/A_CodeR/SA-SS3/HAB/calc/ss3.exe"
+pathSS3
+dirExists(calc)
+
+store <- pathtopath(wdir,"HAB/whiting/")  # snapper  # whiting  # garfish
+dirExists(store)
+
+basecase <- c("GSV_03_mh",    # snapper
+              "whiting_1_mh" # whiting
+)
+
+item = 2
+analysis <- getCase(index=item,basecase) 
+destination <- pathtopath(store,analysis)
+print(destination)
+extradir <- pathtopath(destination,"extra/")
+dirExists(extradir)
+
+load(pathtopath(destination,paste0("plotreport_",analysis,".Rdata")))  
+
+outlists <- do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
+                     store=store,verbose = TRUE,
+                     compare=NULL,linear=FALSE)
+
+
+
+
+# quicksummary--------
+
+columns <- colnames(times)
+
+sort(unique(times$Sex))
+
+fleets <- plotreport$FleetNames
+nfleet <- length(fleets)
+
+numrow <- nrow(plotreport$agedbase)
+if (numrow > 0) agedbase <- plotreport$agedbase
+
+numrow <- nrow(plotreport$lendbase)
+lendbase <- plotreport$lendbase
+
+# retrospective------------------
+
+# run the retrospective analyses
+retro(
+  dir = new_mod_path, # wherever the model files are
+  oldsubdir = "", # subfolder within dir
+  newsubdir = "retrospectives", # new place to store retro runs within dir
+  years = 0:-5, # years relative to ending year of model
+  exe = "ss3"
+)
+
+# load the 6 models
+retroModels <- SSgetoutput(dirvec = file.path(
+  new_mod_path, "retrospectives",
+  paste("retro", 0:-5, sep = "")
+))
+# summarize the model results
+retroSummary <- SSsummarize(retroModels)
+# create a vector of the ending year of the retrospectives
+endyrvec <- retroSummary[["endyrs"]] + 0:-5
+# make plots comparing the 6 models
+# showing 2 out of the 19 plots done by SSplotComparisons
+SSplotComparisons(retroSummary,
+                  endyrvec = endyrvec,
+                  legendlabels = paste("Data", 0:-5, "years"),
+                  subplot = 2, # only show one plot in vignette
+                  print = TRUE, # send plots to PNG file
+                  plot = FALSE, # don't plot to default graphics device
+                  plotdir = new_mod_path
+)
+
+
+# calculate Mohn's rho, a diagnostic value
+rho_output <- SSmohnsrho(
+  summaryoutput = retroSummary,
+  endyrvec = endyrvec,
+  startyr = retroSummary[["endyrs"]] - 5,
+  verbose = FALSE
+)
+
+
+# jittering-----------------
+
+# define a new directory
+jitter_dir <- file.path(mod_path, "jitter")
+# copy over the stock synthesis model files to the new directory
+copy_SS_inputs(dir.old = mod_path, dir.new = jitter_dir)
+# run the jitters
+jitter_loglike <- jitter(
+  dir = jitter_dir,
+  Njitter = 100,
+  jitter_fraction = 0.1 # a typically used jitter fraction
+)
 
 
 

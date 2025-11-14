@@ -481,18 +481,43 @@ getalcomp <- function(store,analysis) {
   if (length(pickpos) > 0) {
     compage <- agecomp[pickpos,]
     activefleets <- sort(unique(compage$fleet))
+    activefleets <- activefleets[activefleets > 0]
     fleets <- dat$fleetnames[activefleets]
+    pickactive <- which(compage$fleet > 0)
+    compage <- compage[pickactive,]
     sexes <- sort(unique(compage$sex))
     yrs <- sort(unique(compage[,"year"]))
     nyr <- length(yrs)
     startcol <- which(colnames(compage) == "Nsamp")
-    pickF <- grep("f",colnames(compage))
-    pickF <- pickF[which(pickF > startcol)]
-    pickM <- grep("m",colnames(compage))
-    pickM <- pickM[which(pickM > startcol)]
     othercols <- which(colnames(compage) %in% c("year","Lbin_lo","fleet","sex"))
-    compfem <- compage[,c(othercols,pickF)]
-    compmal <- compage[,c(othercols,pickM)]
+    if (nsex > 1) {
+      pickfem <- which(compage$sex == 1)
+      pickF <- grep("f",colnames(compage))
+      if (length(pickF) == 0) {
+        pickF <- grep("a",colnames(compage))
+      }
+      pickF <- pickF[which(pickF > startcol)]
+      compfem <- compage[pickfem,c(othercols,pickF)]
+      pickmal <- which(compage$sex == 2)
+      pickM <- grep("m",colnames(compage))
+      pickM <- pickM[which(pickM > startcol)]
+      compmal <- compage[pickmal,c(othercols,pickM)]
+    } else {
+      pickF <- grep("f",colnames(compage))
+      pickF <- pickF[which(pickF > startcol)]     
+      if (length(pickF) == 0) {
+        pickF <- grep("a",colnames(compage))
+      }
+      pickF <- pickF[which(pickF > startcol)]
+      compfem <- compage[,c(othercols,pickF)]
+      pickM <- grep("m",colnames(compage))
+      pickM <- pickM[which(pickM > startcol)]  
+      if ((nsex == 1) & (sexes == 0)) {
+        compmal <- NULL 
+      } else {
+        compmal <- compage[,c(othercols,pickM)]
+      }
+    }
     invisible(list(compfem=compfem,compmal=compmal,fleets=fleets))
   } else {
     print("No conditional Age-at-Length data found.")
@@ -1212,12 +1237,11 @@ pathtype <- function(inpath) {
 #'     the number of years of data sent to the function.
 #'
 #' @param compsex the array of lengthbin x agebins x year for a given gender
-#' @param gender a character string denotig the gender being illustrated
+#' @param gender a character string denoting the gender being illustrated
 #' @param fleet which fleet is the data representing, a character string
-#' @param rescale a value needed to scale the size of the circle symbol 
-#'     representing the squareroot of the number of observations for a given
-#'     length and age the default value of 0.6 may need to be changed to suit
-#'     one's own data
+#' @param rescale if the default value fails to provide a statisfactory plot
+#'     thenm enter a value here to obtain what's needed. The default = 0, in
+#'     which case the number of age-bins is divided by 18, which usally works.
 #' @param console should the plot go to the console or to a file. default=TRUE
 #' @param plotdir the full path to the plotting directory if a file is to be 
 #'     saved.
@@ -1234,17 +1258,18 @@ pathtype <- function(inpath) {
 #'
 #' @examples
 #' print("wait on example data - wait a while!")
-#' # compsex=compfem; gender="Female"; fleet=fleets[1]; rescale=0.6;
+#' # compsex=compfem[pickflt,]; gender="Female"; fleet=fleets[1]; rescale=0.0;
 #' # console=TRUE;plotdir="";plotout=TRUE 
-plotagecomp <- function(compsex,gender,fleet,rescale=0.6,console=TRUE,
+plotagecomp <- function(compsex,gender,fleet,rescale=0,console=TRUE,
                         plotdir="",plotout=TRUE) {
   tmp <- colnames(compsex)
   pickcut <- which(tmp == "Lbin_lo")
   tmp <- tmp[-(1:pickcut)]
-  tmp <- gsub("m","",tmp)
-  tmp <- gsub("f","",tmp)
+  whatchar <- substr(tmp[1],1,1)
+  tmp <- gsub(whatchar,"",tmp)
   agebins <- as.numeric(tmp)
   nages <- length(agebins)  
+  if (rescale == 0) rescale <- nages / 18
   yrs <- sort(unique(compsex[,"year"]))
   nyr <- length(yrs)
   lenbins <- sort(unique(compsex$Lbin_lo))
@@ -1311,6 +1336,7 @@ plotagecomp <- function(compsex,gender,fleet,rescale=0.6,console=TRUE,
 #' @param console should the plot go to the console or a file, default=TRUE
 #' @param plotdir the full path to the directory in which to store the file, 
 #'     default = ''
+#' @param linear add a linear model y on x to the plot, default = FALSE
 #'     
 #' @seealso{
 #'     \link{plotagecomp}, \link{getalcomp}
@@ -1321,7 +1347,8 @@ plotagecomp <- function(compsex,gender,fleet,rescale=0.6,console=TRUE,
 #' @examples
 #' print("Wait on data sets")
 #' # alcomp=alfem;gender="Female";fleet=fleets[1];console=TRUE;plotdir=""
-plotagelen <- function(alcomp,gender,fleet,console=TRUE,plotdir="") {
+plotagelen <- function(alcomp,gender,fleet,console=TRUE,plotdir="",
+                       linear=FALSE) {
   inmat <- alcomp[,,1]
   ages <- as.numeric(colnames(inmat))
   lght <- as.numeric(rownames(inmat))
@@ -1332,6 +1359,7 @@ plotagelen <- function(alcomp,gender,fleet,console=TRUE,plotdir="") {
     fileout <- paste0("AgeLenKey_",fleet,"_",gender,".png")
     filen <- pathtopath(plotdir,fileout)
   }
+  linmodout <- matrix(0,nrow=nyr,ncol=2,dimnames=list(yrs,c("inter","grad")))
   plotprep(width=10, height=10,newdev=TRUE,filename=filen,verbose=FALSE)
   parset(plots=pickbound(nyr),outmargin=c(1,1.3,0.1,0.1),
          margin=c(0.3,0.35,0.05,0.05),byrow=FALSE)
@@ -1345,16 +1373,24 @@ plotagelen <- function(alcomp,gender,fleet,console=TRUE,plotdir="") {
       xvect <- c(xvect,rep(ages[pickcol[i]],tot[pickcol[i]]))
       yvect <- c(yvect,rep(lght,inmat[,pickcol[i]]))
     }
+    linmod <- lm(yvect ~ xvect)
     nobs <- length(xvect)
     label <- paste0(yrs[yr],"_",nobs)
     plot(base::jitter(xvect),base::jitter(yvect),type="p",pch=1,cex=1,
          xlim=c(ages[1],ages[length(ages)]),
          ylim=c(lght[1],lght[length(lght)]),xlab="",ylab=label,
          panel.first = grid())
+    if (linear) {
+      abline(linmod,lwd=2,col=2)
+      mod <- coefficients(linmod)
+      label <- paste0(round(mod[1],3),"  ",round(mod[2],3))
+      legend("bottomright",label,lwd=0,col=0,bty="n",cex=1.2) 
+    }
   }
   label <- paste0("Age ",gender," ",fleet)
   mtext(label,side=1,line=-0.5,outer=TRUE,cex=1.25,font=7)
   mtext("Length",side=2,line=0,outer=TRUE,cex=1.25,font=7)
+  if (!linear) linmodout <- NULL
   invisible(filen)
 } # end of plotagelen
 
