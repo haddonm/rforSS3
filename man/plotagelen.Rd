@@ -4,7 +4,15 @@
 \alias{plotagelen}
 \title{plotagelen plots a jittered version of conditional age-at-length data}
 \usage{
-plotagelen(alcomp, gender, fleet, console = TRUE, plotdir = "", linear = FALSE)
+plotagelen(
+  alcomp,
+  gender,
+  fleet,
+  console = TRUE,
+  plotdir = "",
+  trendline = FALSE,
+  vbpar = NULL
+)
 }
 \arguments{
 \item{alcomp}{the output from plotagecomp an array of length x age x year}
@@ -19,7 +27,13 @@ plotagelen(alcomp, gender, fleet, console = TRUE, plotdir = "", linear = FALSE)
 \item{plotdir}{the full path to the directory in which to store the file,
 default = ''}
 
-\item{linear}{add a linear model y on x to the plot, default = FALSE}
+\item{trendline}{if = 'linear' then it adds a linear model y on x to the
+plot of length against age, or if 'vb' it uses an input set of vonB
+parameters as c(Linf, K, t0) to plot a vB curve to each year of data,
+or if NULL, the default, it adds nothing.}
+
+\item{vbpar}{default = NULL or it is a vector of c(Linf, K, t0) then it uses
+thoe values to add a vB curve to each year of datas.}
 }
 \value{
 nothing but it does generate a plot
@@ -31,7 +45,7 @@ jitter function hence the need for the namespace.
 }
 \examples{
 print("Wait on data sets")
-# alcomp=alfem;gender="Female";fleet=fleets[1];console=TRUE;plotdir=""
+# alcomp=alfem;gender="Female";fleet=fleets[1];console=TRUE;plotdir="";vbpar=vb1
 }
 \seealso{
 {

@@ -12,7 +12,7 @@ do_extra(
   verbose = TRUE,
   compare = NULL,
   paths = NULL,
-  linear = FALSE
+  trendline = NULL
 )
 }
 \arguments{
@@ -38,8 +38,11 @@ comparisons are to be made then leave as NULL.}
 compared then this should be a character vector of the full paths. If no
 comparisons are to be made then leave as NULL.}
 
-\item{linear}{should linear models be fitted to conditional age-length data,
-default=FALSE}
+\item{trendline}{default=NULL, which implies no lone is plotted. The only
+two option currently are 'linear' and 'vB'. Letter case is ignored. Any
+other entry is treated as NULL. A linear model is fitted to each year of
+data, the vB parameters from the model fit are plotted on each year's
+data.}
 }
 \value{
 nothing but it does generate an array of plots and tables inserted

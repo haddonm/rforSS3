@@ -473,19 +473,19 @@ getalcomp <- function(store,analysis) {
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
   dat <- SS_readdat_3.30(file=datfile,verbose = FALSE,section = NULL)
-  nsex <- dat$Nsexes
   agebins <- dat$agebin_vector
   nages <- length(agebins)
   agecomp <- dat$agecomp
   pickpos <- which(agecomp$Lbin_lo > 0)
   if (length(pickpos) > 0) {
     compage <- agecomp[pickpos,]
+    sexes <- sort(unique(compage$sex))
+    nsex <- length(sexes)    
     activefleets <- sort(unique(compage$fleet))
     activefleets <- activefleets[activefleets > 0]
     fleets <- dat$fleetnames[activefleets]
     pickactive <- which(compage$fleet > 0)
     compage <- compage[pickactive,]
-    sexes <- sort(unique(compage$sex))
     yrs <- sort(unique(compage[,"year"]))
     nyr <- length(yrs)
     startcol <- which(colnames(compage) == "Nsamp")
@@ -1306,7 +1306,9 @@ plotagecomp <- function(compsex,gender,fleet,rescale=0,console=TRUE,
       agelen[agelen == 0] <- NA
       nobs <- sum(alcomp[,,i],na.rm=TRUE)
       label <- paste0(yrs[i],"_",nobs)
-      plot(xvect,yvect,type="n",xlab="",ylab=label,panel.first=grid())
+      maxy <- getmax(yvect)
+      plot(xvect,yvect,type="n",xlab="",ylab=label,ylim=c(0,maxy),
+           panel.first=grid())
       for (age in 1:nages) {
         if (sum(agelen[,age],na.rm=TRUE) > 0) {
           symbols(rep((age-1),nlbins),lenbins,circles=(agelen[,age]*rescale),
@@ -1336,7 +1338,12 @@ plotagecomp <- function(compsex,gender,fleet,rescale=0,console=TRUE,
 #' @param console should the plot go to the console or a file, default=TRUE
 #' @param plotdir the full path to the directory in which to store the file, 
 #'     default = ''
-#' @param linear add a linear model y on x to the plot, default = FALSE
+#' @param trendline if = 'linear' then it adds a linear model y on x to the 
+#'     plot of length against age, or if 'vb' it uses an input set of vonB
+#'     parameters as c(Linf, K, t0) to plot a vB curve to each year of data,
+#'     or if NULL, the default, it adds nothing.
+#' @param vbpar default = NULL or it is a vector of c(Linf, K, t0) then it uses
+#'     thoe values to add a vB curve to each year of datas.
 #'     
 #' @seealso{
 #'     \link{plotagecomp}, \link{getalcomp}
@@ -1346,9 +1353,9 @@ plotagecomp <- function(compsex,gender,fleet,rescale=0,console=TRUE,
 #'
 #' @examples
 #' print("Wait on data sets")
-#' # alcomp=alfem;gender="Female";fleet=fleets[1];console=TRUE;plotdir=""
+#' # alcomp=alfem;gender="Female";fleet=fleets[1];console=TRUE;plotdir="";vbpar=vb1
 plotagelen <- function(alcomp,gender,fleet,console=TRUE,plotdir="",
-                       linear=FALSE) {
+                       trendline=FALSE, vbpar=NULL) {
   inmat <- alcomp[,,1]
   ages <- as.numeric(colnames(inmat))
   lght <- as.numeric(rownames(inmat))
@@ -1378,20 +1385,34 @@ plotagelen <- function(alcomp,gender,fleet,console=TRUE,plotdir="",
     label <- paste0(yrs[yr],"_",nobs)
     plot(base::jitter(xvect),base::jitter(yvect),type="p",pch=1,cex=1,
          xlim=c(ages[1],ages[length(ages)]),
-         ylim=c(lght[1],lght[length(lght)]),xlab="",ylab=label,
+         ylim=c(0,lght[length(lght)]),xlab="",ylab=label,
          panel.first = grid())
-    if (linear) {
-      abline(linmod,lwd=2,col=2)
-      mod <- coefficients(linmod)
-      label <- paste0(round(mod[1],3),"  ",round(mod[2],3))
-      legend("bottomright",label,lwd=0,col=0,bty="n",cex=1.2) 
+    if (!is.null(trendline)) {
+      trendline <- tolower(trendline)
+      if (trendline == "linear") {
+        abline(linmod,lwd=2,col=2)
+        mod <- coefficients(linmod)
+        label <- paste0(round(mod[1],3),"  ",round(mod[2],3))
+        legend("bottomright",label,lwd=0,col=0,bty="n",cex=1.2) 
+        linmodout[yr,] <- mod
+      } else {
+        if (trendline == "vb") {
+          vbage <- seq(ages[1],ages[length(ages)],length=100)
+          vblen <- vbpar[1] * (1 - exp(-vbpar[2] * (vbage - vbpar[3])))
+          lines(vbage,vblen,lwd=2,col=2)
+        }
+      }
     }
   }
+  tmpvb <- round(vbpar,4)
+  legend("bottomright",c(paste0("Linf ",tmpvb[1]),paste0("K    ",tmpvb[2]),
+                         paste0("t0   ",tmpvb[3])),col=0,lwd=0,bty="n",cex=1.0)
   label <- paste0("Age ",gender," ",fleet)
   mtext(label,side=1,line=-0.5,outer=TRUE,cex=1.25,font=7)
   mtext("Length",side=2,line=0,outer=TRUE,cex=1.25,font=7)
-  if (!linear) linmodout <- NULL
-  invisible(filen)
+  if (trendline != "linear") linmodout <- NULL
+  if (trendline == "vb") linmodout <- vbpar
+  invisible(list(filen=filen,linmodout=linmodout))
 } # end of plotagelen
 
 #' @title plotagelenkey plots all age-length keys derived form getagelenkeys

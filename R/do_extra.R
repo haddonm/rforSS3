@@ -22,8 +22,11 @@
 #' @param paths If different locations are used to store the analyses to be 
 #'     compared then this should be a character vector of the full paths. If no 
 #'     comparisons are to be made then leave as NULL. 
-#' @param linear should linear models be fitted to conditional age-length data,
-#'     default=FALSE
+#' @param trendline default=NULL, which implies no lone is plotted. The only 
+#'     two option currently are 'linear' and 'vB'. Letter case is ignored. Any
+#'     other entry is treated as NULL. A linear model is fitted to each year of
+#'     data, the vB parameters from the model fit are plotted on each year's 
+#'     data.
 #'
 #' @returns nothing but it does generate an array of plots and tables inserted
 #'     into extradir
@@ -34,47 +37,14 @@
 #' # do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
 #' #          store=store)
 do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
-                     compare=NULL,paths=NULL,linear=FALSE) {
+                     compare=NULL,paths=NULL,trendline=NULL) {
   #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
-  #  verbose=TRUE; compare=NULL; paths=NULL;linear=FALSE
+  #  verbose=TRUE; compare=NULL; paths=NULL;trendline="vb";console=TRUE
   setuphtml(extradir)
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
   dat <- SS_readdat_3.30(file=datfile,verbose = FALSE,section = NULL)
   console <- FALSE
-  # age-Length keys
-  # destination <- pathtopath(store,analysis)
-  # datfile <- pathtopath(destination,paste0(analysis,".dat"))
-  # dat <- SS_readdat_3.30(file=datfile,verbose = FALSE,section = NULL)
-  # if (!plotreport$growthvaries) {
-  #   LAA <- plotreport$growthseries[1,]
-  #   
-  # }
-  # if (dat$N_agebins > 0) {
-  #   outscene <- suppressWarnings(getagelenkeys(dat))
-  #   console <- FALSE
-  #   verbose <- FALSE
-  #   if (!is.null(outscene)) {
-  #     if (outscene$nscene > 8) {
-  #       nscene <- outscene$nscene
-  #       iter <- ceiling(outscene$nscene / 8)
-  #       pickscene <- c(1:8)
-  #       for (i in 1:iter) {
-  #         plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=pickscene,pch=1,
-  #                       pchcex=1.25,pchcol=2,console=console,verbose=verbose)
-  #         pickscene <- pickscene + 8
-  #         pickpick <- which(pickscene <= nscene)
-  #         pickscene <- pickscene[pickpick]
-  #         if ((i < iter) & (console)) readline(prompt="Press [enter] to continue")
-  #       }
-  #     } else {
-  #       plotagelenkey(outcomp=outscene,rundir=extradir,plotscenes=NULL,pch=1,
-  #                     pchcex=1.25,pchcol=2,console=console,verbose=verbose)
-  #     }
-  #   }
-  # } else {
-  #   warning(cat("No conditional age-at-length data found for the primary analysis \n"))
-  # }
   # tables tab-------------------------------
   if (verbose) cat("Generating tables tab \n")
   outsummary <- summarizeSS3(plotreport)
@@ -167,10 +137,21 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
   if (!is.null(compdat)) {
     compfem <- compdat$compfem
     compmal <- compdat$compmal
-    fleets <- compdat$fleets    
+    fleetnames <- plotreport$FleetNames
+    fleets <- compdat$fleets  
+    idfleet <- which(fleetnames %in% compdat$fleets)
     nfleet <- length(fleets)
-    for (i in 1:nfleet) { # i=1
-      pickflt <- which(compfem$fleet == i)
+    vb1 <-  NULL
+    vb2 <- NULL
+    if (tolower(trendline) == "vb") {
+      vBpars <- plotreport$Growth_Parameters
+      vb1 <- c(vBpars[1,"Linf"], vBpars[1,"K"],vBpars[1,"A_a_L0"])
+      if (nrow(vBpars) == 2) {
+        vb2 <- c(vBpars[2,"Linf"], vBpars[2,"K"],vBpars[2,"A_a_L0"])
+      }
+    }
+    for (i in 1:nfleet) { # i=4
+      pickflt <- which(compfem$fleet == idfleet[i])
       alout <- plotagecomp(compsex=compfem[pickflt,],gender="Female",
                            fleet=fleets[i],rescale=0.0,console=console,
                            plotdir=extradir,plotout=TRUE)
@@ -179,25 +160,28 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
               caption=paste0("Conditional Age-at_length data by year for ",
                              "females for fleet ",fleets[i]))    
       alfem <- alout$alcomp
-      filename <- plotagelen(alcomp=alfem,gender="Female",fleet=fleets[i],
-                           console=FALSE,plotdir=extradir,linear=linear)
-      
+      alfemout <- plotagelen(alcomp=alfem,gender="Female",fleet=fleets[i],
+                           console=console,plotdir=extradir,
+                           trendline=trendline,vbpar=vb1)
+      filename <- alfemout$filen
       addplot(filen=filename,rundir=extradir,category="CAAL",
               caption=paste0("Conditional Age-at_length data by year for ",
                              "females for fleet ",fleets[i],", jittered to ",
                              "indicate density of data.")) 
       if (!is.null(compmal)) {
-        pickflt <- which(compmal$fleet == i)
+        pickflt <- which(compmal$fleet == idfleet[i])
         alout <- plotagecomp(compsex=compmal[pickflt,],gender="Male",
-                             fleet=fleets[i],rescale=0.0,console=FALSE,
+                             fleet=fleets[i],rescale=0.0,console=console,
                              plotdir=extradir,plotout=TRUE)
         filename <- alout$filen
         addplot(filen=filename,rundir=extradir,category="CAAL",
                 caption=paste0("Conditional Age-at_length data by year for ",
                                "males for fleet ",fleets[i]))    
         almal <- alout$alcomp
-        filename <- plotagelen(alcomp=almal,gender="Male",fleet=fleets[i],
-                               console=FALSE,plotdir=extradir,linear=linear)
+        almalout <- plotagelen(alcomp=almal,gender="Male",fleet=fleets[i],
+                             console=console,plotdir=extradir,
+                             trendline=trendline,vbpar=vb2)
+        filename <- almalout$filen
         addplot(filen=filename,rundir=extradir,category="CAAL",
                 caption=paste0("Conditional Age-at_length data by year for ",
                                "males for fleet ",fleets[i],", jittered to ",
@@ -242,9 +226,9 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
     lenprop <- getprops(plotreport$lendbase,fleetnames=fleetnames,
                         comptype="Len")
     agg <- lenprop$agg
-    fleets <- sort(unique(agg[,"Fleet"]))
+    fleets <- sort(unique(agg[,"Fleet"])) # this time numbers = ID
     nfleet <- length(fleets)
-    for (fl in 1 : nfleet) { # fl = 2
+    for (fl in 1 : nfleet) { # fl = 1
       whichfleet <- fleets[fl]
       flname <- fleetnames[whichfleet]
       filename <- plotaggage(agg1=lenprop$agg,
@@ -303,7 +287,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
           plotnull(msg="No male length data")
         }  
       } else { # end of if sexes > 1 loop
-        pickfl <- which(lencomp$fleet == fl)
+        pickfl <- which((lencomp$fleet == fl) & (lencomp$year > 0))
         tmp <- lencomp[pickfl,]
         yrs <- sort(unique(tmp[,"year"]))
         mixed <- t(lencomp[pickfl,7:(nlbin+6)])
