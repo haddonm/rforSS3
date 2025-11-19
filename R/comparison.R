@@ -854,10 +854,10 @@ plotaggage <- function(agg1,agg2=NULL,whichfleet=1,fleetname="",height=7,
 #'
 #' @examples
 #' # plotreport=plotreport; sex="Female";yrs=c(1984,2004,2016); upbound=0; console=TRUE
-plotselex <- function(plotreport,sex="Female",upbound=0,
-                      legendcex=1.1,labelcex=1.5,console=TRUE,rundir="") {
+plotselex <- function(plotreport,sex="Female",upbound=0,legendcex=1.1,
+                      labelcex=1.5,console=TRUE,rundir="",selxlim=NULL) {
   # plotreport=plotreport; sex="Female"; upbound=0; console=TRUE
-  # legendcex=1.1;labelcex=1.5;rundir=extradir  
+  # legendcex=1.1;labelcex=1.5;rundir=extradir;selxlim=NULL  
   sel <- plotreport$sizeselex
   pickL <- which(sel[,"Factor"] == "Lsel")
   sel <- sel[pickL,]
@@ -901,7 +901,9 @@ plotselex <- function(plotreport,sex="Female",upbound=0,
     pickY <- which(hnts[,"Yr"] %in% yrs)
     selvals <- hnts[pickY,6:nsel]
     nyr <- length(yrs)
-    plot(lens,selvals[1,],type="l",lwd=2,ylim=c(0,1.1),yaxs="i",
+    limx <- range(lens)
+    if (!is.null(selxlim)) limx <- selxlim
+    plot(lens,selvals[1,],type="l",lwd=2,xlim=limx,ylim=c(0,1.1),yaxs="i",
          xlab="Total Length (mm)",ylab=paste0(fleetnames[fleet],"_Selectivity"),
          panel.first=grid())
     abline(v=getL50(selvals[1,]),lwd=1,col=1,lty=3)

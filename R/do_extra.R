@@ -27,6 +27,9 @@
 #'     other entry is treated as NULL. A linear model is fitted to each year of
 #'     data, the vB parameters from the model fit are plotted on each year's 
 #'     data.
+#' @param selxlim default = NULL, implies selectivity plots will use the full
+#'     range of sizes. Given a range of 0:100 a selxlim=c(0,60) would limit the
+#'     the selectivity plots to the lower end of the plots.
 #'
 #' @returns nothing but it does generate an array of plots and tables inserted
 #'     into extradir
@@ -37,9 +40,10 @@
 #' # do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
 #' #          store=store)
 do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
-                     compare=NULL,paths=NULL,trendline=NULL) {
+                     compare=NULL,paths=NULL,trendline=NULL,selxlim=NULL) {
   #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
-  #  verbose=TRUE; compare=NULL; paths=NULL;trendline="vb";console=TRUE
+  #  verbose=TRUE; compare = c("GAR_GSV_DEV","GAR_GSV_DEV_S100"); paths=NULL;
+  #  trendline="vb";console=TRUE
   setuphtml(extradir)
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
@@ -85,7 +89,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
   # selectivity Tab-------
   if (verbose) cat("Generating selectivity tab \n")
   filename <- plotselex(plotreport,sex="Female",upbound=0,
-                        console=console,rundir=extradir)
+                        console=console,rundir=extradir,selxlim=selxlim)
   mixsex <- FALSE
   if (length(grep("mixed",filename))) {
     mixsex <- TRUE
@@ -98,7 +102,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
   again <- grep("mixed",filename)
   if (!mixsex) {
     filename <- plotselex(plotreport,sex="Male",upbound=0,
-                          console=console,rundir=extradir)
+                          console=console,rundir=extradir,selxlim=selxlim)
     addplot(filen=filename,rundir=extradir,category="selectivity",
             caption="Male selectivity for each time-block.")
   }
@@ -315,7 +319,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
       filename <- "Comparison_of_scenarios.png"
       projout <- projreceffects(compscenes=compscenes,fileout=filename,
                                 rundir=extradir,legcex=1.0,startyr=2,
-                                console=FALSE)
+                                console=console)
       addplot(filen=filename,rundir=extradir,category="compare",
               caption="Comparison of Scenarios.")
     }
@@ -331,7 +335,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
     
     cpue <- compscenes$cpue
     filename <- comparecpueplot(cpue,rundir=extradir,height=8,CI=TRUE,
-                                console=FALSE)
+                                console=console)
     addplot(filen=filename,rundir=extradir,category="compare",
             caption="Comparison of CPUE. Note CI are from 1st scenario only.")
     # agecomp comparisons  
@@ -351,14 +355,14 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
           flname <- fleetnames[whichfleet]
           filename <- plotaggage(agg1=ageprop1$agg,agg2=ageprop2$agg,
                                  whichfleet=whichfleet,fleetname=flname,
-                                 console=FALSE,rundir=extradir,
+                                 console=console,rundir=extradir,
                                  scenarios=compare)
           addplot(filen=filename,rundir=extradir,category="compare",
                   caption=paste0("Comparison of Fit to Age Comps aggregated ",
                                  "by Year and ",flname,"."))    
           
           filename <- plotageprops(agecomp1=ageprop1,agecomp2=ageprop2,whichfleet=fl,
-                                   console=FALSE,rundir=extradir,scenarios=compare) 
+                                   console=console,rundir=extradir,scenarios=compare) 
           addplot(filen=filename,rundir=extradir,category="compare",
                   caption=paste0("Comparison of Fit to Age Comps in each year by ",
                                  flname))

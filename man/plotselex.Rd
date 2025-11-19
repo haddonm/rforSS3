@@ -11,7 +11,8 @@ plotselex(
   legendcex = 1.1,
   labelcex = 1.5,
   console = TRUE,
-  rundir = ""
+  rundir = "",
+  selxlim = NULL
 )
 }
 \arguments{

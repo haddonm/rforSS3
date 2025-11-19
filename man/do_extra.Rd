@@ -12,7 +12,8 @@ do_extra(
   verbose = TRUE,
   compare = NULL,
   paths = NULL,
-  trendline = NULL
+  trendline = NULL,
+  selxlim = NULL
 )
 }
 \arguments{
@@ -43,6 +44,10 @@ two option currently are 'linear' and 'vB'. Letter case is ignored. Any
 other entry is treated as NULL. A linear model is fitted to each year of
 data, the vB parameters from the model fit are plotted on each year's
 data.}
+
+\item{selxlim}{default = NULL, implies selectivity plots will use the full
+range of sizes. Given a range of 0:100 a selxlim=c(0,60) would limit the
+the selectivity plots to the lower end of the plots.}
 }
 \value{
 nothing but it does generate an array of plots and tables inserted
