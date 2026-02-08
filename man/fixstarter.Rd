@@ -4,7 +4,12 @@
 \alias{fixstarter}
 \title{fixstarter - saves a new starter.ss file ready to use the par file}
 \usage{
-fixstarter(directory, findtext = "use init value", toscreen = FALSE)
+fixstarter(
+  directory,
+  findtext = "use init value",
+  toscreen = FALSE,
+  changevalue = "1"
+)
 }
 \arguments{
 \item{directory}{the calculation directory in which starter.ss can be found}
@@ -14,6 +19,11 @@ contains the line that needs modification.}
 
 \item{toscreen}{defaults to FALSE, meaning no information is sent to the
 screen when this function is called.}
+
+\item{changevalue}{a character string either '0' or '1'. default = '1',
+which implies SS will use the previously estimated parameters. '0'
+implies it will start the minimization using the init values in the ctl
+file.}
 }
 \value{
 starter.ss is modified so that ss3 will use the previously

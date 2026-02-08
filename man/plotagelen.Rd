@@ -45,7 +45,8 @@ jitter function hence the need for the namespace.
 }
 \examples{
 print("Wait on data sets")
-# alcomp=alfem;gender="Female";fleet=fleets[1];console=TRUE;plotdir="";vbpar=vb1
+#  alcomp=alfem;gender="Female";fleet=fleets[i];console=TRUE;plotdir="";vbpar=vb1
+#  console=console;trendline=trendline
 }
 \seealso{
 {

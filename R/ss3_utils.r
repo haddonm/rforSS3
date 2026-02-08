@@ -399,8 +399,9 @@ fillvector <- function(x,vals) { # x=fems; vals = sizes
 #'    issue a stop warning if the first part is not a number. If there are
 #'    tab markers present these will first be converted to spaces.
 #' @param intxt - a vector of characters, the first one of which is a number
+#' 
 #' @return a single number
-#' @export firstNum
+#' @export
 #' @examples
 #' \dontrun{
 #' inputtxt <- "1  2   3   4"
@@ -428,13 +429,20 @@ firstNum <- function(intxt) {
 #'     contains the line that needs modification.
 #' @param toscreen defaults to FALSE, meaning no information is sent to the
 #'    screen when this function is called.
+#' @param changevalue a character string either '0' or '1'. default = '1', 
+#'     which implies SS will use the previously estimated parameters. '0'
+#'     implies it will start the minimization using the init values in the ctl
+#'     file.
+#'     
 #' @return starter.ss is modified so that ss3 will use the previously
 #'    estimated par file as the starting point in the estimation
-#' @export fixstarter
+#'    
+#' @export
 #' @examples
 #' print("An example has still to be written")
 #' # typical syntax  fixstarter(calc,findtext="use init value")
-fixstarter <- function(directory,findtext="use init value",toscreen=FALSE) {
+fixstarter <- function(directory,findtext="use init value",toscreen=FALSE,
+                       changevalue="1") {
    startfile <- pathtopath(directory,"starter.ss")
    starter <- readLines(con = startfile)
    pickP <- grep(findtext,starter,fixed=TRUE)
@@ -882,7 +890,29 @@ getStatus <- function(txtlist) {  # txtlist <- plotreport
   return(tmp1)
 }  # end of getStatus
 
-
+#' @title getproduction extracts MSY related information from the Report.sso
+#' 
+#' @description getproduction is used to extract MSY related information from 
+#'     the Report.sso, because I cannot find it in teh plotreport
+#'
+#' @param destination the full path to the analysis of interest. A combination 
+#'     of the store and the analysis.
+#'
+#' @returns a single column matrix of Bzero, MSY, Bmsy, and DeplMSY
+#' @export
+#'
+#' @examples
+#' print("wait in built in datasets")
+getproduction <- function(destination) {
+  dat <- readLines(pathtopath(destination,"Report.sso"))
+  MSY <- getsingleNum("Dead_Catch_MSY",dat,split=" ")
+  Bmsy <- getsingleNum("SSB_MSY",dat,split=" ")
+  Bzero <- getsingleNum("SSB_unfished",dat,split=" ")
+  DeplMSY <- Bmsy/Bzero
+  production <- matrix(c(Bzero,MSY,Bmsy,DeplMSY),nrow=4,ncol=1,
+                       dimnames=list(c("Bzero","MSY","Bmsy","DeplMSY"),"MSY"))
+  return(production)
+} # end of getproduction
 
 #' @title getprops gets proportions of agecomp or lencomp aggregated across years
 #'
@@ -960,6 +990,27 @@ getprops <- function(compbase,fleetnames,comptype="Len") { # compbase=plotreport
   # agg
   return(list(propyr=propyr,exppropyr=exppropyr,agg=agg))
 } # end of getprops
+
+#' @title getStatus - extract the values of B0 and Current Depletion
+#'
+#' @description getStatus extracts the values of all the likelihoods used, as
+#'    well as the B0 and Current Depletion. Best displayed with round(,7).
+#'    
+#' @param txtlist the output object from applying the SS_output function in SS3
+#' 
+#' @return a vector of all likelihoods, B0 and current depletion
+#' @export getStatus
+#' 
+#' @examples
+#' print("run an example or load a plotreport file and apply this function")
+getStatus <- function(txtlist) {  # txtlist <- plotreport
+  tmp <- txtlist$likelihoods_used
+  label <- rownames(tmp)
+  rbind(tmp,c(txtlist$SBzero,NA),c(txtlist$current_depletion,NA))
+  tmp1 <- rbind(tmp,c(txtlist$SBzero,NA),c(txtlist$current_depletion,NA))
+  rownames(tmp1) <- c(label,"SBzero","Current_Depl")
+  return(tmp1)
+}  # end of getStatus
 
 #' @title get_tuning_table copied completely from r4ss currently not exported
 #' 
@@ -1258,16 +1309,18 @@ pathtype <- function(inpath) {
 #'
 #' @examples
 #' print("wait on example data - wait a while!")
-#' # compsex=compfem[pickflt,]; gender="Female"; fleet=fleets[1]; rescale=0.0;
+#' # compsex=compfem[pickflt,]; gender="mixed"; fleet=fleets[1]; rescale=0.0;
 #' # console=TRUE;plotdir="";plotout=TRUE 
+#' # fixed for multiple rows of ageing data with the saem Lbin_lo
 plotagecomp <- function(compsex,gender,fleet,rescale=0,console=TRUE,
                         plotdir="",plotout=TRUE) {
   tmp <- colnames(compsex)
+  numcol <- length(tmp)
   pickcut <- which(tmp == "Lbin_lo")
-  tmp <- tmp[-(1:pickcut)]
-  whatchar <- substr(tmp[1],1,1)
-  tmp <- gsub(whatchar,"",tmp)
-  agebins <- as.numeric(tmp)
+  usecols <- tmp[(pickcut+1):ncol(compsex)]
+  whatchar <- substr(usecols[1],1,1)
+  useages <- gsub(whatchar,"",usecols)
+  agebins <- as.numeric(useages)
   nages <- length(agebins)  
   if (rescale == 0) rescale <- nages / 18
   yrs <- sort(unique(compsex[,"year"]))
@@ -1278,14 +1331,34 @@ plotagecomp <- function(compsex,gender,fleet,rescale=0,console=TRUE,
                   dimnames=list(lenbins,agebins,yrs))
   for (yr in 1:nyr) { # yr = 1
     pickyr <- which(compsex[,"year"] == yrs[yr])
-    tmp <- compsex[pickyr,]
-    numcol <- ncol(tmp)
-    if (nrow(tmp)  < nlbins) {
-      lens <- match(tmp[,"Lbin_lo"],lenbins)
+    tmpcomp <- compsex[pickyr,]
+    tmpcomp <- tmpcomp[order(tmpcomp[,"Lbin_lo"]),]
+    useL <- as.numeric(unique(tmpcomp[,"Lbin_lo"]))
+    nuseL <- length(useL)
+    if (nuseL < nrow(tmpcomp)) { # combine repeated rows
+      usecomp <- as.data.frame(matrix(0,nrow=nuseL,ncol=numcol,
+                                       dimnames=list(useL,tmp)))
+      init <- as.numeric(tmpcomp[1,1:3])
+      for (i in 1:nuseL) { #  i = 2
+        pickR <- which(tmpcomp[,"Lbin_lo"] == useL[i])
+        if (length(pickR) > 1) {
+          vect <- colSums(tmpcomp[pickR,(pickcut+1):ncol(tmpcomp)])
+          addline <- c(init,useL[i],vect)
+          usecomp[i,] <- addline
+        } else {
+          usecomp[i,] <- tmpcomp[pickR,]
+        }
+      }    
+    } else {
+      usecomp <- tmpcomp
+    } 
+    numcol <- ncol(usecomp)
+    if (nrow(usecomp) < nlbins) {
+      lens <- match(usecomp[,"Lbin_lo"],lenbins)
     } else {
       lens <- 1:nlbins
     }
-    for (i in 5:numcol) alcomp[lens,(i-4),yr] <- tmp[,i]
+    for (i in 5:numcol) alcomp[lens,(i-4),yr] <- usecomp[,i]
   }
   filen=""
   if (plotout) {
@@ -1353,12 +1426,13 @@ plotagecomp <- function(compsex,gender,fleet,rescale=0,console=TRUE,
 #'
 #' @examples
 #' print("Wait on data sets")
-#' # alcomp=alfem;gender="Female";fleet=fleets[1];console=TRUE;plotdir="";vbpar=vb1
+#' #  alcomp=alfem;gender="Female";fleet=fleets[i];console=TRUE;plotdir="";vbpar=vb1
+#' #  console=console;trendline=trendline
 plotagelen <- function(alcomp,gender,fleet,console=TRUE,plotdir="",
                        trendline=FALSE, vbpar=NULL) {
   inmat <- alcomp[,,1]
   ages <- as.numeric(colnames(inmat))
-  lght <- as.numeric(rownames(inmat))
+  lgth <- as.numeric(rownames(inmat))
   yrs <- as.numeric(dimnames(alcomp)[[3]])
   nyr <- length(yrs)
   filen=""
@@ -1368,24 +1442,41 @@ plotagelen <- function(alcomp,gender,fleet,console=TRUE,plotdir="",
   }
   linmodout <- matrix(0,nrow=nyr,ncol=2,dimnames=list(yrs,c("inter","grad")))
   plotprep(width=10, height=10,newdev=TRUE,filename=filen,verbose=FALSE)
-  parset(plots=pickbound(nyr),outmargin=c(1,1.3,0.1,0.1),
+  parset(plots=pickbound(nyr+1),outmargin=c(1,1.3,0.1,0.1),
          margin=c(0.3,0.35,0.05,0.05),byrow=FALSE)
-  for (yr in 1:nyr) {
-    inmat <- alcomp[,,yr]
-    tot <- colSums(inmat)
+  total <- alcomp[,,1]
+  for (i in 2:nyr) total <- total + alcomp[,,i]
+  for (yr in 1:(nyr+1)) { # yr=4
+    if (yr == (nyr+1)) {
+      inmat <- total
+    } else {
+      inmat <- alcomp[,,yr]
+    }
+    tot <- colSums(inmat,na.rm=TRUE)
     pickcol <- which(tot > 0)
     xvect <- NULL
     yvect <- NULL
+    lens <- as.numeric(rownames(inmat))
     for (i in 1:length(pickcol)) { # i = 1
+      usevect <- inmat[,pickcol[i]]
+      pickN <- which(usevect >= 0)
+      usevect <- usevect[pickN]
+      uselgth <- lgth[match(as.numeric(names(usevect)),lgth)]
+      if (length(uselgth) != length(lgth)) 
+        warning(cat("NAs in plotagelen in yr ",yrs[yr],"\n"))
       xvect <- c(xvect,rep(ages[pickcol[i]],tot[pickcol[i]]))
-      yvect <- c(yvect,rep(lght,inmat[,pickcol[i]]))
+      yvect <- c(yvect,rep(uselgth,usevect))
     }
     linmod <- lm(yvect ~ xvect)
     nobs <- length(xvect)
-    label <- paste0(yrs[yr],"_",nobs)
+    if (yr == (nyr+1)) {
+      label <- paste0("AllYears_",nobs)
+    } else {
+      label <- paste0(yrs[yr],"_",nobs)
+    }
     plot(base::jitter(xvect),base::jitter(yvect),type="p",pch=1,cex=1,
          xlim=c(ages[1],ages[length(ages)]),
-         ylim=c(0,lght[length(lght)]),xlab="",ylab=label,
+         ylim=c(0,lgth[length(lgth)]),xlab="",ylab=label,
          panel.first = grid())
     if (!is.null(trendline)) {
       trendline <- tolower(trendline)
@@ -1806,6 +1897,7 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
   pickN <- which(param[,"Phase"] < 0)
   columns <- c("Num","Value","Init","Phase","Min","Max")
   noestpars <- param[pickN,columns]
+  dyn <- replist$timeseries
   answer <- c(round(replist$endyr),replist$current_depletion,replist$SBzero,
               (1-replist$sprseries[nrow(replist$sprseries),"SPR"]),M,steep,sigR,
               likes["TOTAL",1],likes["Survey",1],likes["Length_comp",1],

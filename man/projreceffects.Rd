@@ -44,7 +44,7 @@ having the same endyr and same number of parameters.
 \examples{
 # require(hplot)
 # require(codeutils)
-# compscenes getreplists(store="c:/afishsps/",listname="plotreport",
+# compscenes <- getreplists(store="c:/afishsps/",listname="plotreport",
 #             scenes=c("basecase_1","basecase_Rp7"),paths=NULL)
 # projout <- projreceffects(compscenes,rundir="",console=TRUE)
 # str(projout)

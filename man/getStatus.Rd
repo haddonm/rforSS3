@@ -5,17 +5,25 @@
 \title{getStatus - extract the values of B0 and Current Depletion}
 \usage{
 getStatus(txtlist)
+
+getStatus(txtlist)
 }
 \arguments{
 \item{txtlist}{the output object from applying the SS_output function in SS3}
 }
 \value{
 a vector of all likelihoods, B0 and current depletion
+
+a vector of all likelihoods, B0 and current depletion
 }
 \description{
 getStatus extracts the values of all the likelihoods used, as
 well as the B0 and Current Depletion. Best displayed with round(,7).
+
+getStatus extracts the values of all the likelihoods used, as
+well as the B0 and Current Depletion. Best displayed with round(,7).
 }
 \examples{
+print("run an example or load a plotreport file and apply this function")
 print("run an example or load a plotreport file and apply this function")
 }

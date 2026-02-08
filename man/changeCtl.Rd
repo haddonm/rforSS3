@@ -37,7 +37,7 @@ new control file
 changeCtl alters a parameter within the SS3 ctl file
 once it has been copied into the calc directory. This means the
 original is never messed with. It finds the param string within
-the ctl file andmodifies that line of text by replacing the
+the ctl file and modifies that line of text by replacing the
 variable value at varpos (typically 3) with the newvalue. Once
 completed the function outputs a new ctl file as text, which then
 needs to be written back into the calc directory using the

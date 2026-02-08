@@ -455,13 +455,14 @@ projectedcatches <- function(plotreport) {
 #' @examples
 #' # require(hplot)
 #' # require(codeutils)
-#' # compscenes getreplists(store="c:/afishsps/",listname="plotreport",
+#' # compscenes <- getreplists(store="c:/afishsps/",listname="plotreport",
 #' #             scenes=c("basecase_1","basecase_Rp7"),paths=NULL)
 #' # projout <- projreceffects(compscenes,rundir="",console=TRUE)
 #' # str(projout)
 projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
                            startyr=2,console=TRUE) {
-  #  compscenes=compscenes; rundir="extradir";legcex=1.0;console=TRUE; startyr=2; fileout=""
+  # compscenes=compscenes;fileout="";rundir=extradir;legcex=1.0
+  # startyr=2;console=TRUE
   if (startyr < 2) startyr <- 2  # avoiding input error
   catches <- compscenes$catches
   scenes <- names(catches)
@@ -480,17 +481,16 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   plotprep(width=10,height=9,newdev=TRUE,filename=filen,cex=1.0,verbose=FALSE)
   parset(plots=c(3,2),cex=1.0,margin=c(0.3,0.45,0.1,0.1),
          outmargin=c(1,0,0,0))
-  spawnB <- sapply(catches,"[[","SpawnB")
+  spawnB <- sapply(catches,"[[","SpawnB")  # do spawning biomass
   rownames(spawnB) <- allyrs
   maxy <- getmax(spawnB[pickyrs,])
   plot(yrs,spawnB[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Spawning Biomass",xlab="",panel.first=grid())
-  #points(yrs[1],spawnB[1,1])
   if (nscen > 1) 
     for (i in 2:nscen) lines(yrs,spawnB[pickyrs,i],lwd=2,col=i)
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   mtext("(a) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end spawning biom
-  totalC <- sapply(catches,"[[","TotalC")
+  totalC <- sapply(catches,"[[","TotalC")  # do catches
   rownames(totalC) <- allyrs
   maxy <- getmax(totalC[pickyrs,])
   plot(yrs,totalC[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
@@ -498,9 +498,9 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   if (nscen > 1) 
     for (i in 2:nscen) lines(yrs,totalC[pickyrs,i],lwd=2,col=i)
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
-  legend("bottomleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
+  legend("topleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
   mtext("(b) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end catch
-  recruits <- sapply(catches,"[[","recruits")
+  recruits <- sapply(catches,"[[","recruits") # do Recruits
   rownames(recruits) <- allyrs
   projvals <- tail(recruits,1)
   maxy <- getmax(recruits[pickyrs,])
@@ -515,7 +515,7 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   }
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   mtext("(c) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
-  depl <- sapply(catches,"[[","Depletion")
+  depl <- sapply(catches,"[[","Depletion")  # do Depletion
   rownames(depl) <- allyrs
   maxy <- getmax(depl[pickyrs,])
   plot(yrs,depl[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
@@ -545,7 +545,7 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   if (nscen > 1)
     for (i in 2:nscen) lines(yrs,instF[[i]][pickfyrs,"F_std"],lwd=3,col=i)
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
-  legend("bottomleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
+  legend("topleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
   mtext("(e) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
   # Plot individual fleet with maximum F
   numcol <- ncol(first)
@@ -848,6 +848,8 @@ plotaggage <- function(agg1,agg2=NULL,whichfleet=1,fleetname="",height=7,
 #' @param labelcex default = 1.5, font size for axis labels
 #' @param console default = TRUE, should plot go to console or png file?
 #' @param rundir directory into which to place plots, default=""
+#' @param selxlim default=NULL if one wants to determine the x-axis limits then
+#'     set selxlim to a 2 value vector as needed by xlim
 #'
 #' @return invisibly the filename of the plot being made.
 #' @export

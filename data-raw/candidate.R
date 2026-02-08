@@ -729,7 +729,37 @@ jitter_loglike <- jitter(
   jitter_fraction = 0.1 # a typically used jitter fraction
 )
 
+# logistic------------------------------------------
 
+library(hplot)
+
+logistic <- function(inL50,delta,lens,knifeedge=0,maxLML=0) {
+  ans <- 1/(1+exp(-log(19.0)*(lens-inL50)/(delta)))
+  if (knifeedge > 0) {
+    pick <- which(lens < knifeedge)
+    if (length(pick) > 0) ans[pick] <- 0.0
+  }
+  if (maxLML > 0) {
+    pick <- which(lens > maxLML)
+    if (length(pick) > 0) ans[pick] <- 0.0
+  }
+  return(ans)
+}
+
+
+lens <- 20:60
+inL50 = 40
+delta = 5
+
+sel <- logistic(inL50,delta,lens)
+
+filen <- pathtopath(repdir,"logisticSel.png") 
+
+plotprep(width=7,height=3.5,newdev=TRUE,filename=filen,cex=1.0,verbose=FALSE)
+parset(cex=1,margin=c(0.5,0.5,0.1,0.1))
+plot(lens,sel,type="l",lwd=2,col=4,xlab="Fish Length cm",
+     ylab="Logistic Selectivity",panel.first=grid(lty=3,col="darkgrey"))
+dev.off()
 
 
 

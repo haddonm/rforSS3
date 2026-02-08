@@ -30,6 +30,9 @@ this even if sex = 0 is used, it will be ignored}
 \item{console}{default = TRUE, should plot go to console or png file?}
 
 \item{rundir}{directory into which to place plots, default=""}
+
+\item{selxlim}{default=NULL if one wants to determine the x-axis limits then
+set selxlim to a 2 value vector as needed by xlim}
 }
 \value{
 invisibly the filename of the plot being made.

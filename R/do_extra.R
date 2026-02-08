@@ -22,7 +22,7 @@
 #' @param paths If different locations are used to store the analyses to be 
 #'     compared then this should be a character vector of the full paths. If no 
 #'     comparisons are to be made then leave as NULL. 
-#' @param trendline default=NULL, which implies no lone is plotted. The only 
+#' @param trendline default=NULL, which implies no line is plotted. The only 
 #'     two option currently are 'linear' and 'vB'. Letter case is ignored. Any
 #'     other entry is treated as NULL. A linear model is fitted to each year of
 #'     data, the vB parameters from the model fit are plotted on each year's 
@@ -41,9 +41,9 @@
 #' #          store=store)
 do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
                      compare=NULL,paths=NULL,trendline=NULL,selxlim=NULL) {
-  #  plotreport=plotreport;extradir=extradir;analysis=analysis; store=store  
-  #  verbose=TRUE; compare = c("GAR_GSV_DEV","GAR_GSV_DEV_S100"); paths=NULL;
-  #  trendline="vb";console=TRUE
+   # plotreport=plotreport;extradir=extradir;analysis=analysis; store=store
+   # verbose=TRUE; compare = c("base_v23","base_v23_domedEst"); paths=NULL;
+   # trendline="vb";console=TRUE
   setuphtml(extradir)
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
@@ -56,6 +56,10 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
   filename <- paste0(analysis,"_summary_answer.csv")
   addtable(answer,filen=filename,rundir=extradir,category="tables",
            caption=paste0(analysis,"_Quick summary of model outputs."))
+  prodout <- getproduction(destination)
+  filename <- paste0(analysis,"_MSY_related_props.csv")
+  addtable(round(prodout,4),filen=filename,rundir=extradir,category="tables",
+           caption=paste0(analysis,"_Summary of MSY related Properties."))
   param <- outsummary$param
   pickP <- grep("Main_RecrDev",rownames(param)) 
   filename <- paste0(analysis,"_estimated-parameters_no_Devs.csv")
@@ -142,19 +146,21 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
     compfem <- compdat$compfem
     compmal <- compdat$compmal
     fleetnames <- plotreport$FleetNames
-    fleets <- compdat$fleets  
+    fleets <- compdat$fleets
     idfleet <- which(fleetnames %in% compdat$fleets)
     nfleet <- length(fleets)
     vb1 <-  NULL
     vb2 <- NULL
-    if (tolower(trendline) == "vb") {
-      vBpars <- plotreport$Growth_Parameters
-      vb1 <- c(vBpars[1,"Linf"], vBpars[1,"K"],vBpars[1,"A_a_L0"])
-      if (nrow(vBpars) == 2) {
-        vb2 <- c(vBpars[2,"Linf"], vBpars[2,"K"],vBpars[2,"A_a_L0"])
+    if (!is.null(trendline)) {
+      if (tolower(trendline) == "vb") {
+        vBpars <- plotreport$Growth_Parameters
+        vb1 <- c(vBpars[1,"Linf"], vBpars[1,"K"],vBpars[1,"A_a_L0"])
+        if (nrow(vBpars) == 2) {
+          vb2 <- c(vBpars[2,"Linf"], vBpars[2,"K"],vBpars[2,"A_a_L0"])
+        }
       }
-    }
-    for (i in 1:nfleet) { # i=4
+    } # end of !is.null(trendline)
+    for (i in 1:nfleet) { # i=1; console=TRUE
       pickflt <- which(compfem$fleet == idfleet[i])
       alout <- plotagecomp(compsex=compfem[pickflt,],gender="Female",
                            fleet=fleets[i],rescale=0.0,console=console,
@@ -162,7 +168,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
       filename <- alout$filen
       addplot(filen=filename,rundir=extradir,category="CAAL",
               caption=paste0("Conditional Age-at_length data by year for ",
-                             "females for fleet ",fleets[i]))    
+                             "females for fleet ",fleets[i]))
       alfem <- alout$alcomp
       alfemout <- plotagelen(alcomp=alfem,gender="Female",fleet=fleets[i],
                            console=console,plotdir=extradir,
@@ -171,7 +177,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
       addplot(filen=filename,rundir=extradir,category="CAAL",
               caption=paste0("Conditional Age-at_length data by year for ",
                              "females for fleet ",fleets[i],", jittered to ",
-                             "indicate density of data.")) 
+                             "indicate density of data."))
       if (!is.null(compmal)) {
         pickflt <- which(compmal$fleet == idfleet[i])
         alout <- plotagecomp(compsex=compmal[pickflt,],gender="Male",
@@ -180,7 +186,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
         filename <- alout$filen
         addplot(filen=filename,rundir=extradir,category="CAAL",
                 caption=paste0("Conditional Age-at_length data by year for ",
-                               "males for fleet ",fleets[i]))    
+                               "males for fleet ",fleets[i]))
         almal <- alout$alcomp
         almalout <- plotagelen(alcomp=almal,gender="Male",fleet=fleets[i],
                              console=console,plotdir=extradir,
@@ -189,7 +195,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
         addplot(filen=filename,rundir=extradir,category="CAAL",
                 caption=paste0("Conditional Age-at_length data by year for ",
                                "males for fleet ",fleets[i],", jittered to ",
-                               "indicate density of data."))  
+                               "indicate density of data."))
       }
     }
   } else {

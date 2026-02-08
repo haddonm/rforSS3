@@ -46,8 +46,9 @@ the number of years of data sent to the function.
 }
 \examples{
 print("wait on example data - wait a while!")
-# compsex=compfem[pickflt,]; gender="Female"; fleet=fleets[1]; rescale=0.0;
+# compsex=compfem[pickflt,]; gender="mixed"; fleet=fleets[1]; rescale=0.0;
 # console=TRUE;plotdir="";plotout=TRUE 
+# fixed for multiple rows of ageing data with the saem Lbin_lo
 }
 \seealso{
 {
