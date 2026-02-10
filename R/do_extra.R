@@ -30,6 +30,9 @@
 #' @param selxlim default = NULL, implies selectivity plots will use the full
 #'     range of sizes. Given a range of 0:100 a selxlim=c(0,60) would limit the
 #'     the selectivity plots to the lower end of the plots.
+#' @param compareanyway default = FALSE, but even if the dimensions differ, say
+#'     different numbers of fleets, compareanyway = TRUE mean try to make a 
+#'     comparison plot anyway.
 #'
 #' @returns nothing but it does generate an array of plots and tables inserted
 #'     into extradir
@@ -40,10 +43,11 @@
 #' # do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
 #' #          store=store)
 do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
-                     compare=NULL,paths=NULL,trendline=NULL,selxlim=NULL) {
+                     compare=NULL,paths=NULL,trendline=NULL,selxlim=NULL,
+                     compareanyway=FALSE) {
    # plotreport=plotreport;extradir=extradir;analysis=analysis; store=store
-   # verbose=TRUE; compare = c("base_v23","base_v23_domedEst"); paths=NULL;
-   # trendline="vb";console=TRUE
+   # verbose=TRUE; compare = c("base_v23","base_v23_domed2Flt"); paths=NULL;
+   # trendline="vb";console=TRUE; compareanyway=TRUE
   setuphtml(extradir)
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
@@ -321,7 +325,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
     if (verbose) cat("Generating comparison tab \n")
     compscenes <- getreplists(store=store,scenes=compare,paths=paths,
                               listname="plotreport")
-    if (!compscenes$dimdiff) {
+    if ((!compscenes$dimdiff) || (compareanyway)) {
       filename <- "Comparison_of_scenarios.png"
       projout <- projreceffects(compscenes=compscenes,fileout=filename,
                                 rundir=extradir,legcex=1.0,startyr=2,
@@ -382,29 +386,33 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
     # further table of comparisons
     if (nrow(compscenes$total[[1]]$parameters) == 
         nrow(compscenes$total[[2]]$parameters)) {
-      outstats <- comparestats(compscenes)
+        outstats <- comparestats(compscenes)
+    } else {
+      outstats <- comparesummary(compscenes)
+    }  
       
-      outans <- round(outstats$answer,7)
-      filename <- "Comparison_Model_output_scenario.csv"
-      addtable(outans,filen=filename,rundir=extradir,category="compare",
-               caption="Comparison of model output by scenario.")    
+    outans <- round(outstats$answer,7)
+    filename <- "Comparison_Model_output_scenario.csv"
+    addtable(outans,filen=filename,rundir=extradir,category="compare",
+             caption="Comparison of model output by scenario.")    
+    
+    outlik <- round(outstats$likes,6)
+    filename <- "Comparison_Model_Likelihoods_scenario.csv"
+    addtable(outlik,filen=filename,rundir=extradir,category="compare",
+             caption="Comparison of model Likelihoods by scenario.")    
       
-      outlik <- round(outstats$likes,6)
-      filename <- "Comparison_Model_Likelihoods_scenario.csv"
-      addtable(outlik,filen=filename,rundir=extradir,category="compare",
-               caption="Comparison of model Likelihoods by scenario.")    
-      
+    if (nrow(compscenes$total[[1]]$parameters) == 
+        nrow(compscenes$total[[2]]$parameters)) {
       outpar <- round(outstats$param,6)
       filename <- "Comparison_Model_paramters_scenario.csv"
       addtable(outpar,filen=filename,rundir=extradir,category="compare",
-               caption="Comparison of model parameters by scenario.")       
-      
-      outmod <- round(outstats$models,3)
-      filename <- "Comparison_Model_structure_scenario.csv"
-      addtable(outmod,filen=filename,rundir=extradir,category="compare",
-               caption="Comparison of model structure by scenario.") 
-    } 
-  }
+               caption="Comparison of model parameters by scenario.")   
+    }
+    outmod <- round(outstats$models,3)
+    filename <- "Comparison_Model_structure_scenario.csv"
+    addtable(outmod,filen=filename,rundir=extradir,category="compare",
+             caption="Comparison of model structure by scenario.") 
+  } # end of comparison tab
   make_html(replist=NULL,
             rundir=extradir,
             datadir=NULL,

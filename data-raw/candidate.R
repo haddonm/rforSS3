@@ -762,4 +762,44 @@ plot(lens,sel,type="l",lwd=2,col=4,xlab="Fish Length cm",
 dev.off()
 
 
+#prodcomp-------------------------------------
+
+
+ddir <- getDBdir()   # if you use dropbox - this is in codeutils
+wdir <- pathtopath(ddir,"/projects/NSW_Kingfish/SS3run/")
+store <- pathtopath(wdir,"kingfish/") 
+
+scenes <- c("base_v23_domedEst","base_v23_domed2Flt","base_v23_domedlowRec")
+nscen <- length(scenes)
+rowns <- c("Bzero","MSY","Bmsy","DeplMSY")
+prodscene <- matrix(0,nrow=4,ncol=nscen,dimnames=list(rowns,scenes))
+for (i in 1:nscen) { # i = 1
+  destination <- pathtopath(store,scenes[i])
+  prodscene[,i] <- getproduction(destination)
+}
+round(prodscene,3)
+
+tmp <- pathtopath(ddir,"/projects/NSW_Kingfish/report/figures/")
+filename <- pathtopath(tmp,"prodscene.csv") 
+write.csv(prodscene,file=filename)
+
+read.csv(filename)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

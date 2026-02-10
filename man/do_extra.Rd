@@ -13,7 +13,8 @@ do_extra(
   compare = NULL,
   paths = NULL,
   trendline = NULL,
-  selxlim = NULL
+  selxlim = NULL,
+  compareanyway = FALSE
 )
 }
 \arguments{
@@ -48,6 +49,10 @@ data.}
 \item{selxlim}{default = NULL, implies selectivity plots will use the full
 range of sizes. Given a range of 0:100 a selxlim=c(0,60) would limit the
 the selectivity plots to the lower end of the plots.}
+
+\item{compareanyway}{default = FALSE, but even if the dimensions differ, say
+different numbers of fleets, compareanyway = TRUE mean try to make a
+comparison plot anyway.}
 }
 \value{
 nothing but it does generate an array of plots and tables inserted

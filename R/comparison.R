@@ -161,6 +161,80 @@ comparestats <- function(x) { # x = compscenes
   return(list(answer=answer,likes=likes,param=param,models=models))
 } # end of comparestats
 
+#' @title comparesummary compares a set of plotreports/replists 
+#' 
+#' @description comparesummary takes in a set of plotreports/replists collected
+#'     by the 'getreplists' function and generates an outsummary object that
+#'     contains, for each scenario, the summary outputs these should be stable
+#'     even for models with different numbers of parameters. This is a subset
+#'     of comparestats
+#'
+#' @param x a set of plotreports/replists output from getreplists
+#' 
+#' @seealso{
+#'   \link{getreplists}
+#' }
+#'
+#' @returns a list of the answer, likes, and model matrices.
+#' @export
+#'
+#' @examples
+#' print("wait on example data")
+comparesummary <- function(x) { # x = compscenes
+  x1 <- x$scenesum
+  scenes <- names(x1) 
+  nscen <- length(scenes)
+  answer <- sapply(x1,"[[","answer") 
+  firstlike <- x1[[1]]$likes
+  nlik <- nrow(firstlike)
+  likenames <- rownames(firstlike)
+  likes <- matrix(NA,nrow=nlik,ncol=nscen,
+                  dimnames=list(likenames,scenes))
+  likes[,1] <- firstlike[,"values"]
+  for (i in 2:nscen) { # i = 2
+    namelike2 <- rownames(x1[[i]]$likes)
+    pickL <- match(namelike2,likenames)
+    if (length(pickL) != nlik) warning(cat("Differeing number of likelihoods \n"))
+    likes[pickL,i] <- x1[[i]]$likes[,"values"]      
+  }
+  x2 <- x$total[[1]]
+  ages <- x2$Age_Comp_Fit_Summary
+  nafleet <- nrow(ages); nacol <- ncol(ages)
+  agefleet <- numeric(nafleet); names(agefleet) <- ages[1:nafleet,nacol]
+  agefleet <- ages[1:nafleet,2]
+  lens <- x2$Length_Comp_Fit_Summary
+  nlfleet <- nrow(lens); nlcol <- ncol(lens)
+  lenfleet <- numeric(nlfleet); names(lenfleet) <- ages[1:nlfleet,nlcol] 
+  lenfleet <- lens[1:nlfleet,2]
+  fleets <- unique(agefleet,lenfleet)
+  fltnames <- paste(x2$FleetNames[fleets],"A","L",sep=",")
+  tuneinfo <- get_tuning_table(x2,fleets=fleets,option="Francis",
+                               write=FALSE,verbose=FALSE)
+  addflt <- paste0(x2$FleetNames[fleets],c("-A","-L"),collapse=" ")
+  rows <- c("nsex","startyr","endyr","B0","startSSB","endSSB","enddepl",
+            "nfleets","NatM-Fem","NatM-Mal",addflt)
+  models <- matrix(0,nrow=length(rows),ncol=nscen,dimnames=list(rows,scenes))
+  for (i in 1:nscen) { # i=1
+    x2 <- x$total[[i]]
+    getpar <- x2$parameters
+    picksex <- grep("NatM",rownames(getpar))
+    models[1,i] <- length(picksex)
+    models[2,i] <- x2$startyr
+    models[3,i] <- x2$endyr
+    deriv <- x2$derived_quants
+    models[4,i] <- deriv["SSB_Virgin","Value"]
+    models[5,i] <- deriv[paste0("SSB_",models[2,i]),"Value"]
+    models[6,i] <- deriv[paste0("SSB_",models[3,i]),"Value"]
+    models[7,i] <- deriv[paste0("Bratio_",models[3,i]),"Value"]
+    fleets <- x2$FleetNames
+    models[8,i] <- length(fleets)
+    models[9,i] <- getpar[picksex[1],"Value"]
+    models[10,i] <- NA
+    if (length(picksex) == 2) models[10,i] <- getpar[picksex[2],"Value"]
+    if (models[10,i] == 0) models[10,i] <- models[9,i]
+  }
+  return(list(answer=answer,likes=likes,models=models))
+} # end of comparesummary
 
 
 
@@ -532,7 +606,10 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   instF <- makelist((scenes))
   fleetF <- which(total[[1]]$fleet_type == 1)
   nfleet <- length(fleetF)
-  for ( i in 1:nscen) instF[[i]] <- total[[i]]$exploitation[,c(1,4:(6+nfleet))]
+  for ( i in 1:nscen) {
+    nfleet <- total[[i]]$nfleets
+    instF[[i]] <- total[[i]]$exploitation[,c(1,4:(6+nfleet))]
+  }
   first <- instF[[1]]
   allyrs <- first[,"Yr"]
   fnyrs <- length(allyrs)
@@ -548,18 +625,28 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   legend("topleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
   mtext("(e) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
   # Plot individual fleet with maximum F
-  numcol <- ncol(first)
-  flnames <- colnames(first)
-  fleetF <- apply(first,2,max,na.rm=TRUE)[5:numcol]
-  pickFl <- which.max(fleetF) + 4
-  Flmax <- flnames[pickFl]
-  maxFL <- sapply(instF,"[[",Flmax)
-  rownames(maxFL) <- allyrs
-  maxy <- getmax(maxFL[pickfyrs,])
-  plot(yrs,maxFL[pickfyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+  numcol <- whchflt <- numeric(nscen)
+  flnames <- makelist(scenes)
+  fleetF <- makelist(scenes)
+  pickFlt <- NULL
+  yrs <- instF[[1]][,"Yr"]
+  nyrs <- length(yrs)
+  maxFL <- matrix(0,nrow=nyrs,ncol=nscen)
+  for (i in 1:nscen) {
+    numcol[i] <- ncol(instF[[i]])
+    flnames[[i]] <- colnames(instF[[i]])
+    fleetF[[i]] <- apply(instF[[i]],2,max,na.rm=TRUE)[5:numcol[i]]
+    whchflt[i] <- which.max(fleetF[[i]])
+    pickFlt <- c(pickFlt,names(which.max(fleetF[[i]])))
+    maxFL[,i] <- instF[[i]][,pickFlt[i]]
+  }
+  rownames(maxFL) <- yrs; colnames(maxFL) <- pickFlt
+  Flmax <- names(which.max(apply(maxFL,2,max)))
+  maxy <- getmax(maxFL)
+  plot(yrs,maxFL[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab=paste0("Fleet with Maximum F: ",Flmax),xlab="",panel.first=grid())
   if (nscen > 1)
-    for (i in 2:nscen) lines(yrs,maxFL[pickfyrs,i],lwd=2,col=i)
+    for (i in 2:nscen) lines(yrs,maxFL[,i],lwd=2,col=i)
   abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
   mtext("(f) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
   mtext("Year",side=1,outer=TRUE,cex=1.2,line=-0.2)
