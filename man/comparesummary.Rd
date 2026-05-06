@@ -17,7 +17,8 @@ comparesummary takes in a set of plotreports/replists collected
 by the 'getreplists' function and generates an outsummary object that
 contains, for each scenario, the summary outputs these should be stable
 even for models with different numbers of parameters. This is a subset
-of comparestats
+of comparestats. Comparison should now work even if either ages or
+lengths are not present.
 }
 \examples{
 print("wait on example data")

@@ -89,7 +89,7 @@ comparecpueplot <- function(cpue,rundir,height=8,CI=TRUE,console=TRUE) {
 #' @export
 #'
 #' @examples
-#' print("wait on example data")
+#' print("wait on example data now includes Nsamp=1!")
 comparestats <- function(x) { # x = compscenes
   x1 <- x$scenesum
   scenes <- names(x1) 
@@ -124,18 +124,21 @@ comparestats <- function(x) { # x = compscenes
   }
   x2 <- x$total[[1]]
   ages <- x2$Age_Comp_Fit_Summary
-  nafleet <- nrow(ages); nacol <- ncol(ages)
-  agefleet <- numeric(nafleet); names(agefleet) <- ages[1:nafleet,nacol]
-  agefleet <- ages[1:nafleet,2]
-  lens <- x2$Length_Comp_Fit_Summary
-  nlfleet <- nrow(lens); nlcol <- ncol(lens)
-  lenfleet <- numeric(nlfleet); names(lenfleet) <- ages[1:nlfleet,nlcol] 
-  lenfleet <- lens[1:nlfleet,2]
-  fleets <- unique(agefleet,lenfleet)
-  fltnames <- paste(x2$FleetNames[fleets],"A","L",sep=",")
-  tuneinfo <- get_tuning_table(x2,fleets=fleets,option="Francis",
-                               write=FALSE,verbose=FALSE)
-  addflt <- paste0(x2$FleetNames[fleets],c("-A","-L"),collapse=" ")
+  if (!is.null(ages)) {
+    nafleet <- nrow(ages); nacol <- ncol(ages)
+    agefleet <- numeric(nafleet); names(agefleet) <- ages[1:nafleet,nacol]
+    agefleet <- ages[1:nafleet,2]
+    lens <- x2$Length_Comp_Fit_Summary
+    nlfleet <- nrow(lens); nlcol <- ncol(lens)
+    lenfleet <- numeric(nlfleet); names(lenfleet) <- ages[1:nlfleet,nlcol] 
+    lenfleet <- lens[1:nlfleet,2]
+    fleets <- unique(agefleet,lenfleet)
+    fltnames <- paste(x2$FleetNames[fleets],"A","L",sep=",")
+    tuneinfo <- get_tuning_table(x2,fleets=fleets,option="Francis",
+                                 write=FALSE,verbose=FALSE)
+  } 
+  catflt <- which(x2$fleet_type == 1)
+  addflt <- paste0(x2$FleetNames[catflt],c("-A","-L"),collapse=" ")
   rows <- c("nsex","startyr","endyr","B0","startSSB","endSSB","enddepl",
             "nfleets","NatM-Fem","NatM-Mal",addflt)
   models <- matrix(0,nrow=length(rows),ncol=nscen,dimnames=list(rows,scenes))
@@ -156,7 +159,7 @@ comparestats <- function(x) { # x = compscenes
     models[9,i] <- getpar[picksex[1],"Value"]
     models[10,i] <- NA
     if (length(picksex) == 2) models[10,i] <- getpar[picksex[2],"Value"]
-    if (models[10,i] == 0) models[10,i] <- models[9,i]
+    if ((models[10,i] == 0) || (is.na(models[10,i]))) models[10,i] <- models[9,i]
   }
   return(list(answer=answer,likes=likes,param=param,models=models))
 } # end of comparestats
@@ -167,7 +170,8 @@ comparestats <- function(x) { # x = compscenes
 #'     by the 'getreplists' function and generates an outsummary object that
 #'     contains, for each scenario, the summary outputs these should be stable
 #'     even for models with different numbers of parameters. This is a subset
-#'     of comparestats
+#'     of comparestats. Comparison should now work even if either ages or 
+#'     lengths are not present.
 #'
 #' @param x a set of plotreports/replists output from getreplists
 #' 
@@ -199,39 +203,48 @@ comparesummary <- function(x) { # x = compscenes
   }
   x2 <- x$total[[1]]
   ages <- x2$Age_Comp_Fit_Summary
-  nafleet <- nrow(ages); nacol <- ncol(ages)
-  agefleet <- numeric(nafleet); names(agefleet) <- ages[1:nafleet,nacol]
-  agefleet <- ages[1:nafleet,2]
+  if (!is.null(ages)) {
+    nafleet <- nrow(ages); nacol <- ncol(ages)
+    agefleet <- numeric(nafleet); names(agefleet) <- ages[1:nafleet,nacol]
+    agefleet <- ages[1:nafleet,2]
+  } else { agefleet <-  NULL }
   lens <- x2$Length_Comp_Fit_Summary
-  nlfleet <- nrow(lens); nlcol <- ncol(lens)
-  lenfleet <- numeric(nlfleet); names(lenfleet) <- ages[1:nlfleet,nlcol] 
-  lenfleet <- lens[1:nlfleet,2]
-  fleets <- unique(agefleet,lenfleet)
-  fltnames <- paste(x2$FleetNames[fleets],"A","L",sep=",")
-  tuneinfo <- get_tuning_table(x2,fleets=fleets,option="Francis",
-                               write=FALSE,verbose=FALSE)
-  addflt <- paste0(x2$FleetNames[fleets],c("-A","-L"),collapse=" ")
-  rows <- c("nsex","startyr","endyr","B0","startSSB","endSSB","enddepl",
-            "nfleets","NatM-Fem","NatM-Mal",addflt)
-  models <- matrix(0,nrow=length(rows),ncol=nscen,dimnames=list(rows,scenes))
-  for (i in 1:nscen) { # i=1
-    x2 <- x$total[[i]]
-    getpar <- x2$parameters
-    picksex <- grep("NatM",rownames(getpar))
-    models[1,i] <- length(picksex)
-    models[2,i] <- x2$startyr
-    models[3,i] <- x2$endyr
-    deriv <- x2$derived_quants
-    models[4,i] <- deriv["SSB_Virgin","Value"]
-    models[5,i] <- deriv[paste0("SSB_",models[2,i]),"Value"]
-    models[6,i] <- deriv[paste0("SSB_",models[3,i]),"Value"]
-    models[7,i] <- deriv[paste0("Bratio_",models[3,i]),"Value"]
-    fleets <- x2$FleetNames
-    models[8,i] <- length(fleets)
-    models[9,i] <- getpar[picksex[1],"Value"]
-    models[10,i] <- NA
-    if (length(picksex) == 2) models[10,i] <- getpar[picksex[2],"Value"]
-    if (models[10,i] == 0) models[10,i] <- models[9,i]
+  if (!is.null(lens)) {
+    nlfleet <- nrow(lens); nlcol <- ncol(lens)
+    lenfleet <- numeric(nlfleet); names(lenfleet) <- ages[1:nlfleet,nlcol] 
+    lenfleet <- lens[1:nlfleet,2]
+  } else { lenfleet <-  NULL }
+  fleets <- unique(c(agefleet,lenfleet))
+  if (!is.null(fleets)) {
+    fltnames <- paste(x2$FleetNames[fleets],"A","L",sep=",")
+    tuneinfo <- get_tuning_table(x2,fleets=fleets,option="Francis",
+                                 write=FALSE,verbose=FALSE)
+    addflt <- paste0(x2$FleetNames[fleets],c("-A","-L"),collapse=" ")
+    rows <- c("nsex","startyr","endyr","B0","startSSB","endSSB","enddepl",
+              "nfleets","NatM-Fem","NatM-Mal",addflt)
+    models <- matrix(0,nrow=length(rows),ncol=nscen,dimnames=list(rows,scenes))
+    for (i in 1:nscen) { # i=1
+      x2 <- x$total[[i]]
+      getpar <- x2$parameters
+      picksex <- grep("NatM",rownames(getpar))
+      models[1,i] <- length(picksex)
+      models[2,i] <- x2$startyr
+      models[3,i] <- x2$endyr
+      deriv <- x2$derived_quants
+      models[4,i] <- deriv["SSB_Virgin","Value"]
+      models[5,i] <- deriv[paste0("SSB_",models[2,i]),"Value"]
+      models[6,i] <- deriv[paste0("SSB_",models[3,i]),"Value"]
+      models[7,i] <- deriv[paste0("Bratio_",models[3,i]),"Value"]
+      fleets <- x2$FleetNames
+      models[8,i] <- length(fleets)
+      models[9,i] <- getpar[picksex[1],"Value"]
+      models[10,i] <- 0
+      if (length(picksex) == 2) models[10,i] <- getpar[picksex[2],"Value"]
+      if (models[10,i] == 0) models[10,i] <- models[9,i]
+    } 
+  } else {
+    models = NULL
+    if (verbose) cat("Model comparisons not made no age or length data! \n")
   }
   return(list(answer=answer,likes=likes,models=models))
 } # end of comparesummary
@@ -418,6 +431,7 @@ getprojdyn <- function(compscenes) {
 getreplists <- function(store,listname,scenes,paths=NULL,verbose=TRUE) {
 #  store=store;scenes=compare;paths=NULL;listname="plotreport"  
   nscen <- length(scenes)
+  if (is.null(nscen)) nscen <- 1
   total <- makelist(scenes)
   dyn <- makelist(scenes)
   cpue <- makelist(scenes)
@@ -486,14 +500,18 @@ projectedcatches <- function(plotreport) {
   findfleets <-which(plotreport$fleet_type == 1)
   namecols <- c("year","SpawnB","recruits",
                 paste0("C(B)_",fleets[findfleets]),"TotalC",
-                "Depletion","ABC-Buffer","Era")
+                "Depletion","Era")
   columns <- c(2,7,8,deadB)
   ncatch <- length(deadB)
   catches <- timeseries[,columns]
   depl=catches[,2]/catches[1,2]
-  abc <-  timeseries[,"ABC_buffer"]
   era <-  timeseries[,"Era"]
-  catchall <- cbind(catches,rowSums(catches[,4:(ncatch+3)]),depl,abc,era)
+  if (ncatch > 1) {
+    catchall <- cbind(catches,rowSums(catches[,4:(ncatch+3)]),depl,era)
+  } else {
+    catchall <- cbind(catches,catches[,4],depl,era)
+  }
+  
   colnames(catchall) <- namecols
   return(catchall)
 } # end of projectedcatches
@@ -517,6 +535,10 @@ projectedcatches <- function(plotreport) {
 #' @param legcex default=1.25 but if there are many scenarios it should be less
 #' @param startyr in which year shouyld the plots start? default = 2
 #' @param console default = TRUE, meaning the plot will be sent to the console
+#' @param targpt default=NULL, do not add target to depletion plot, otherwise  
+#'     define the target reference points and it will be added.
+#' @param includeF default = TRUE, means to include the plots relating to
+#'     fishing mortality. 
 #' 
 #' @seealso{
 #'   \link[r4ss]{SS_output}, \link{projectedcatches}, \link{getreplists}
@@ -534,7 +556,7 @@ projectedcatches <- function(plotreport) {
 #' # projout <- projreceffects(compscenes,rundir="",console=TRUE)
 #' # str(projout)
 projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
-                           startyr=2,console=TRUE) {
+                           startyr=2,console=TRUE,targpt=NULL, includeF=TRUE) {
   # compscenes=compscenes;fileout="";rundir=extradir;legcex=1.0
   # startyr=2;console=TRUE
   if (startyr < 2) startyr <- 2  # avoiding input error
@@ -552,9 +574,13 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   if (!console) {
     filen <- pathtopath(rundir,fileout)
   }
-  plotprep(width=10,height=9,newdev=TRUE,filename=filen,cex=1.0,verbose=FALSE)
-  parset(plots=c(3,2),cex=1.0,margin=c(0.3,0.45,0.1,0.1),
-         outmargin=c(1,0,0,0))
+  if (includeF) {
+    plotprep(width=10,height=9,newdev=TRUE,filename=filen,cex=1.0,verbose=FALSE)
+    parset(plots=c(3,2),cex=1.0,margin=c(0.3,0.45,0.1,0.1),outmargin=c(1,0,0,0))
+  } else {
+    plotprep(width=10,height=6,newdev=TRUE,filename=filen,cex=1.0,verbose=FALSE)
+    parset(plots=c(2,2),cex=1.0,margin=c(0.3,0.45,0.1,0.1),outmargin=c(1,0,0,0))    
+  }
   spawnB <- sapply(catches,"[[","SpawnB")  # do spawning biomass
   rownames(spawnB) <- allyrs
   maxy <- getmax(spawnB[pickyrs,])
@@ -596,60 +622,65 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
        ylab="Spawning Biomass Depletion",xlab="",panel.first=grid())
   if (nscen > 1)
     for (i in 2:nscen) lines(yrs,depl[pickyrs,i],lwd=2,col=i)
-  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
-  abline(h=0.2,lwd=1,col=2,lty=3)
+  abline(v=(endyr + 0.5),lwd=1,col=1,lty=2)
+  abline(h=0.2,lwd=2,col=2,lty=2)
+  if (!is.null(targpt)) abline(h=targpt,lwd=2,col=3,lty=2)
   mtext("(d) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end SSBdepl
   # plot instantaneous F rates
-  total <- compscenes$total
-  scenes <- names(total)
-  nscen <- length(scenes)
-  instF <- makelist((scenes))
-  fleetF <- which(total[[1]]$fleet_type == 1)
-  nfleet <- length(fleetF)
-  for ( i in 1:nscen) {
-    nfleet <- total[[i]]$nfleets
-    instF[[i]] <- total[[i]]$exploitation[,c(1,4:(6+nfleet))]
+  if (includeF) {
+    total <- compscenes$total
+    scenes <- names(total)
+    nscen <- length(scenes)
+    instF <- makelist((scenes))
+    fleetF <- which(total[[1]]$fleet_type == 1)
+    nfleet <- length(fleetF)
+    for ( i in 1:nscen) {
+      instF[[i]] <- total[[i]]$exploitation[,c(1,4:(6+nfleet))]
+    }
+    first <- instF[[1]]
+    allyrs <- first[,"Yr"]
+    fnyrs <- length(allyrs)
+    pickfyrs <- (startyr-1):fnyrs 
+    yrs <- allyrs[pickfyrs]
+    Fstd <- sapply(instF,"[[","F_std")
+    maxy <- getmax(Fstd[pickfyrs,])
+    plot(yrs,first[pickfyrs,"F_std"],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+         ylab="Overall Instantaneous F",xlab="",panel.first=grid())
+    if (nscen > 1)
+      for (i in 2:nscen) lines(yrs,instF[[i]][pickfyrs,"F_std"],lwd=3,col=i)
+    abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
+    legend("topleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
+    mtext("(e) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
+    # Plot individual fleet with maximum F
+    numcol <- whchflt <- numeric(nscen)
+    flnames <- makelist(scenes)
+    fleetF <- makelist(scenes)
+    pickFlt <- NULL
+    yrs <- instF[[1]][,"Yr"]
+    nyrs <- length(yrs)
+    maxFL <- matrix(0,nrow=nyrs,ncol=nscen)
+    for (i in 1:nscen) {
+      numcol[i] <- ncol(instF[[i]])
+      flnames[[i]] <- colnames(instF[[i]])
+      fleetF[[i]] <- apply(instF[[i]],2,max,na.rm=TRUE)[5:numcol[i]]
+      whchflt[i] <- which.max(fleetF[[i]])
+      pickFlt <- c(pickFlt,names(which.max(fleetF[[i]])))
+      maxFL[,i] <- instF[[i]][,pickFlt[i]]
+    }
+    rownames(maxFL) <- yrs; colnames(maxFL) <- pickFlt
+    Flmax <- names(which.max(apply(maxFL,2,max)))
+    maxy <- getmax(maxFL)
+    plot(yrs,maxFL[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+         ylab=paste0("Fleet with Maximum F: ",Flmax),xlab="",panel.first=grid())
+    if (nscen > 1)
+      for (i in 2:nscen) lines(yrs,maxFL[,i],lwd=2,col=i)
+    abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
+    mtext("(f) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
+    mtext("Year",side=1,outer=TRUE,cex=1.2,line=-0.2)
+  } else {
+    instF <- NULL
+    maxFL <- NULL
   }
-  first <- instF[[1]]
-  allyrs <- first[,"Yr"]
-  fnyrs <- length(allyrs)
-  pickfyrs <- (startyr-1):fnyrs 
-  yrs <- allyrs[pickfyrs]
-  Fstd <- sapply(instF,"[[","F_std")
-  maxy <- getmax(Fstd[pickfyrs,])
-  plot(yrs,first[pickfyrs,"F_std"],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
-       ylab="Overall Instantaneous F",xlab="",panel.first=grid())
-  if (nscen > 1)
-    for (i in 2:nscen) lines(yrs,instF[[i]][pickfyrs,"F_std"],lwd=3,col=i)
-  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
-  legend("topleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
-  mtext("(e) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
-  # Plot individual fleet with maximum F
-  numcol <- whchflt <- numeric(nscen)
-  flnames <- makelist(scenes)
-  fleetF <- makelist(scenes)
-  pickFlt <- NULL
-  yrs <- instF[[1]][,"Yr"]
-  nyrs <- length(yrs)
-  maxFL <- matrix(0,nrow=nyrs,ncol=nscen)
-  for (i in 1:nscen) {
-    numcol[i] <- ncol(instF[[i]])
-    flnames[[i]] <- colnames(instF[[i]])
-    fleetF[[i]] <- apply(instF[[i]],2,max,na.rm=TRUE)[5:numcol[i]]
-    whchflt[i] <- which.max(fleetF[[i]])
-    pickFlt <- c(pickFlt,names(which.max(fleetF[[i]])))
-    maxFL[,i] <- instF[[i]][,pickFlt[i]]
-  }
-  rownames(maxFL) <- yrs; colnames(maxFL) <- pickFlt
-  Flmax <- names(which.max(apply(maxFL,2,max)))
-  maxy <- getmax(maxFL)
-  plot(yrs,maxFL[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
-       ylab=paste0("Fleet with Maximum F: ",Flmax),xlab="",panel.first=grid())
-  if (nscen > 1)
-    for (i in 2:nscen) lines(yrs,maxFL[,i],lwd=2,col=i)
-  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
-  mtext("(f) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
-  mtext("Year",side=1,outer=TRUE,cex=1.2,line=-0.2)
   if (!console) dev.off()
   on.exit(par(oldpar))
   return(invisible(list(spawnB=spawnB,totalC=totalC,recruits=recruits,
@@ -687,12 +718,13 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
 #' @export
 #'
 #' @examples
-#' # compare==c("SGBC-5-4-100-43","SGBC-5-4-80-6")
+#' # agecomp1=lenprop;whichfleet=fl;comptype="Age";console=TRUE;rundir=extradir
+#' # scenarios=analysis;agecomp2=NULL;height=9
 plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
                          comptype="Age",console=TRUE,rundir="",
                          scenarios=c(1,2)) {
   #   agecomp1=ageprop1;  whichfleet <- 1; agecomp2=NULL; console=TRUE;rundir=""
-  #   scenarios=analysis; height=9; comptype
+  #   scenarios=analysis; height=9; comptype="Age"
   namedims <- dimnames(agecomp1[[1]])
   fleetnames <- namedims[[4]]
   nfleet <- length(fleetnames)
@@ -701,10 +733,13 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
   if (nfleet > 1) {
     plotfleet <- whichfleet
   }
+  Nobs <- agecomp1$Nobs
+  effN <- agecomp1$effN
   ages <- as.numeric(unlist(namedims[[2]]))
   nages <- length(ages)
   yrs <- as.numeric(unlist(namedims[[1]]))
   nyr <- length(yrs)
+  compnames <- dim(agecomp1$propyr)
   propyr <- agecomp1$propyr[,,,plotfleet]
   exppropyr <- agecomp1$exppropyr[,,,plotfleet]
   if (!is.null(agecomp2)) {
@@ -719,8 +754,11 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
   parset(pickbound(nyr+1),byrow=FALSE,margin=c(0.2,0.2,0.1,0.05),
          outmargin=c(1.5,1.5,0,0))
   maxy <- getmax(c(propyr,exppropyr),mult=1.005)
-  for (i in 1:nyr) { # i = 5
+  for (i in 1:nyr) { # i = 1
     yr <- yrs[i]
+    pickyr <- match(yr,as.numeric(rownames(Nobs)))
+    obsN <- Nobs[pickyr,whichfleet]
+    Neff <- effN[pickyr,whichfleet]
     if (nsex == 2) {
       femprop <- propyr[i,,1]
       malprop <- -propyr[i,,2]
@@ -741,12 +779,17 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
       mtext(yr,side=3,outer=FALSE,adj=1,cex=1.0,line=-1.1)
     } else {
       ndim <- length(dim(propyr))
-      if (length(dim) == 3) {
+      if (ndim == 3) {
         mixprop <- propyr[i,,1]  
         expprop <- exppropyr[i,,1]
-      } else {
+      } 
+      if (ndim == 2) {
         mixprop <- propyr[i,]
         expprop <- exppropyr[i,]
+      }
+      if (ndim == 0) {
+        mixprop <- propyr
+        expprop <- exppropyr       
       }
       if (!is.null(agecomp2)) {
         pickY <- match(rownames(expprop2),rownames(propyr))
@@ -763,21 +806,25 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
         if (i %in% pickY) lines(ages,expprop2[index2[i],],lwd=3,col=3,lty=2)
       }
       mtext(yr,side=3,outer=FALSE,adj=1,cex=1.0,line=-1.1)
+      mtext(obsN,side=3,outer=FALSE,adj=1,cex=1.0,line=-2.1)
+      mtext(round(Neff,2),side=3,outer=FALSE,adj=1,cex=1.0,line=-3.1)
     }
   } # end of yrs loop
   plotnull(msg=" ")
-  leg <- NULL
-  for (i in 1:2) leg <- c(leg,paste0(scenarios[i],"_Female"),
-                          paste0(scenarios[i],"_Male"))
-  if (!is.null(agecomp2)) {
-    legend("bottomright",legend=leg,col=c(2,4,3,5),lwd=3,lty=c(1,1,2,2),
-           cex=1.2,bty="n")
-  } else {
-    if (namedims[[3]] == "mixed") {
-      # do nothing
-    } else {
-      legend("bottomright",legend=leg[1:2],col=c(2,4),lwd=3,lty=c(1,1),
+  if (length(scenarios) > 1) {
+    leg <- NULL
+    for (i in 1:2) leg <- c(leg,paste0(scenarios[i],"_Female"),
+                            paste0(scenarios[i],"_Male"))
+    if (!is.null(agecomp2)) {
+      legend("bottomright",legend=leg,col=c(2,4,3,5),lwd=3,lty=c(1,1,2,2),
              cex=1.2,bty="n")
+    } else {
+      if (length(namedims[[3]]) == 1) {
+        # do nothing
+      } else {
+        legend("bottomright",legend=leg[1:2],col=c(2,4),lwd=3,lty=c(1,1),
+               cex=1.2,bty="n")
+      }
     }
   }
   mtext(comptype,side=1,outer=TRUE,cex=1.2,line=-0.2)
@@ -937,6 +984,8 @@ plotaggage <- function(agg1,agg2=NULL,whichfleet=1,fleetname="",height=7,
 #' @param rundir directory into which to place plots, default=""
 #' @param selxlim default=NULL if one wants to determine the x-axis limits then
 #'     set selxlim to a 2 value vector as needed by xlim
+#' @param includesurvey default=TRUE, should survey fleet selectivity be 
+#'     included?
 #'
 #' @return invisibly the filename of the plot being made.
 #' @export
@@ -944,9 +993,10 @@ plotaggage <- function(agg1,agg2=NULL,whichfleet=1,fleetname="",height=7,
 #' @examples
 #' # plotreport=plotreport; sex="Female";yrs=c(1984,2004,2016); upbound=0; console=TRUE
 plotselex <- function(plotreport,sex="Female",upbound=0,legendcex=1.1,
-                      labelcex=1.5,console=TRUE,rundir="",selxlim=NULL) {
+                      labelcex=1.5,console=TRUE,rundir="",selxlim=NULL,
+                      includesurvey=TRUE) {
   # plotreport=plotreport; sex="Female"; upbound=0; console=TRUE
-  # legendcex=1.1;labelcex=1.5;rundir=extradir;selxlim=NULL  
+  # legendcex=1.1;labelcex=1.5;rundir=extradir;selxlim=NULL;includesurvey=TRUE  
   sel <- plotreport$sizeselex
   pickL <- which(sel[,"Factor"] == "Lsel")
   sel <- sel[pickL,]
@@ -963,9 +1013,14 @@ plotselex <- function(plotreport,sex="Female",upbound=0,legendcex=1.1,
   allnames <- plotreport$FleetNames
   allfleets <- sort(unique(sel$Fleet))
   fleettype <- plotreport$fleet_type
-  fleetnames <- allnames[fleettype == 1]
+  if (includesurvey) {
+    fleets <- allfleets[fleettype %in% c(1,3)]
+    fleetnames <- allnames[fleettype  %in% c(1,3)]
+  } else {
+    fleets <- allfleets[fleettype == 1]
+    fleetnames <- allnames[fleettype == 1]
+  }
   nfleet <- length(fleetnames)
-  fleets <- allfleets[fleettype == 1]
   startyr <- plotreport$startyr
   endyr <- plotreport$endyr
   uniqueyrs <- sort(unique(sel$Yr))

@@ -49,7 +49,8 @@ proportions are scaled by effective sample size, not the nominal sample
 size (see getageprops). This can be applied to two or one scenario.
 }
 \examples{
-# compare==c("SGBC-5-4-100-43","SGBC-5-4-80-6")
+# agecomp1=lenprop;whichfleet=fl;comptype="Age";console=TRUE;rundir=extradir
+# scenarios=analysis;agecomp2=NULL;height=9
 }
 \seealso{
 {

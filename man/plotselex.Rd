@@ -12,7 +12,8 @@ plotselex(
   labelcex = 1.5,
   console = TRUE,
   rundir = "",
-  selxlim = NULL
+  selxlim = NULL,
+  includesurvey = TRUE
 )
 }
 \arguments{
@@ -33,6 +34,9 @@ this even if sex = 0 is used, it will be ignored}
 
 \item{selxlim}{default=NULL if one wants to determine the x-axis limits then
 set selxlim to a 2 value vector as needed by xlim}
+
+\item{includesurvey}{default=TRUE, should survey fleet selectivity be
+included?}
 }
 \value{
 invisibly the filename of the plot being made.

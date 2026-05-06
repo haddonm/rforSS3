@@ -10,7 +10,9 @@ projreceffects(
   rundir = "",
   legcex = 1.25,
   startyr = 2,
-  console = TRUE
+  console = TRUE,
+  targpt = NULL,
+  includeF = TRUE
 )
 }
 \arguments{
@@ -30,6 +32,12 @@ should be saved if console = FALSE. The default = ""}
 \item{startyr}{in which year shouyld the plots start? default = 2}
 
 \item{console}{default = TRUE, meaning the plot will be sent to the console}
+
+\item{targpt}{default=NULL, do not add target to depletion plot, otherwise
+define the target reference points and it will be added.}
+
+\item{includeF}{default = TRUE, means to include the plots relating to
+fishing mortality.}
 }
 \value{
 an invisible list of SpawnB, Total Catches, recruits, spawning

@@ -14,7 +14,9 @@ do_extra(
   paths = NULL,
   trendline = NULL,
   selxlim = NULL,
-  compareanyway = FALSE
+  compareanyway = FALSE,
+  targpt = NULL,
+  includeF = TRUE
 )
 }
 \arguments{
@@ -53,6 +55,12 @@ the selectivity plots to the lower end of the plots.}
 \item{compareanyway}{default = FALSE, but even if the dimensions differ, say
 different numbers of fleets, compareanyway = TRUE mean try to make a
 comparison plot anyway.}
+
+\item{targpt}{default=NULL, do not add target to depletion plot, otherwise
+define the target reference points and it will be added.}
+
+\item{includeF}{default = TRUE, means to include the plots relating to
+fishing mortality.}
 }
 \value{
 nothing but it does generate an array of plots and tables inserted

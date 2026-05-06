@@ -928,8 +928,8 @@ getproduction <- function(destination) {
 #' @export
 #'
 #' @examples
-#' print("Wait n example data")
-getprops <- function(compbase,fleetnames,comptype="Len") { # compbase=plotreport$lendbase
+#' print("Wait n example data")  # compbase=plotreport$lendbase; comptype="Len"
+getprops <- function(compbase,fleetnames,comptype="Len") { 
   fleets <- unique(compbase[,"Fleet"])
   nfleet <- length(fleets)
   fleetnames <- fleetnames[fleets]
@@ -975,7 +975,10 @@ getprops <- function(compbase,fleetnames,comptype="Len") { # compbase=plotreport
     Nsamp_adj = compbase[["Nsamp_adj"]],
     effN = compbase[["effN"]],
     obs = compbase[["Obs"]] * compbase[["Nsamp_adj"]],
-    exp = compbase[["Exp"]] * compbase[["Nsamp_adj"]]
+    exp = compbase[["Exp"]] * compbase[["Nsamp_adj"]],
+    bin = compbase[["Bin"]], f = compbase[["Fleet"]],
+    sex = compbase[["Sex"]], N_in = compbase[["Nsamp_in"]],
+    year = compbase[["Yr"]]
   )
   agg <- aggregate(
     x = df,
@@ -984,11 +987,13 @@ getprops <- function(compbase,fleetnames,comptype="Len") { # compbase=plotreport
       sex = compbase[["Sex"]]
     ),FUN = sum
   )
+  Nobs <- tapply(df$N_in,list(df$year,df$f),mean)
+  effN <- tapply(df$effN,list(df$year,df$f),mean)
   agg[["obs"]] <- agg[["obs"]] / agg[["Nsamp_adj"]]
   agg[["exp"]] <- agg[["exp"]] / agg[["Nsamp_adj"]]
   colnames(agg) <- c(comptype,"Fleet","Sex","Nsamp_adj","effN","Obs","Exp")
   # agg
-  return(list(propyr=propyr,exppropyr=exppropyr,agg=agg))
+  return(list(propyr=propyr,exppropyr=exppropyr,agg=agg,Nobs=Nobs,effN=effN))
 } # end of getprops
 
 #' @title getStatus - extract the values of B0 and Current Depletion
@@ -1898,7 +1903,7 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
   columns <- c("Num","Value","Init","Phase","Min","Max")
   noestpars <- param[pickN,columns]
   dyn <- replist$timeseries
-  answer <- c(round(replist$endyr),replist$current_depletion,replist$SBzero,
+  answer <- c(round(replist$endyr),replist$current_depletion,dyn[1,"SpawnBio"],
               (1-replist$sprseries[nrow(replist$sprseries),"SPR"]),M,steep,sigR,
               likes["TOTAL",1],likes["Survey",1],likes["Length_comp",1],
               likes["Age_comp",1],likes["Recruitment",1],likes["Parm_priors",1],
@@ -1908,7 +1913,6 @@ summarizeSS3 <- function(replist) {  # replist=plotreport
                       "Param_Priors","Forecast_Recruitment","Maximum_Gradient")
   return(list(answer=answer,param=param3,likes=likes,noestpars=noestpars))
 } # end of summarizeSS3
-
 
 
 

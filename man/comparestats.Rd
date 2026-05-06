@@ -19,7 +19,7 @@ contains, for each scenario, summary outputs, the likelihoods, the
 estimable parameter values, and the standard model structure.
 }
 \examples{
-print("wait on example data")
+print("wait on example data now includes Nsamp=1!")
 }
 \seealso{
 {

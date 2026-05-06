@@ -24,5 +24,5 @@ aggregated proportions across years
 getprops gets proportions of agecomp or lencomp aggregated across years
 }
 \examples{
-print("Wait n example data")
+print("Wait n example data")  # compbase=plotreport$lendbase; comptype="Len"
 }

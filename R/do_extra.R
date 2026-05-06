@@ -33,6 +33,10 @@
 #' @param compareanyway default = FALSE, but even if the dimensions differ, say
 #'     different numbers of fleets, compareanyway = TRUE mean try to make a 
 #'     comparison plot anyway.
+#' @param targpt default=NULL, do not add target to depletion plot, otherwise  
+#'     define the target reference points and it will be added.
+#' @param includeF default = TRUE, means to include the plots relating to
+#'     fishing mortality.      
 #'
 #' @returns nothing but it does generate an array of plots and tables inserted
 #'     into extradir
@@ -44,10 +48,10 @@
 #' #          store=store)
 do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
                      compare=NULL,paths=NULL,trendline=NULL,selxlim=NULL,
-                     compareanyway=FALSE) {
+                     compareanyway=FALSE,targpt=NULL,includeF=TRUE) {
    # plotreport=plotreport;extradir=extradir;analysis=analysis; store=store
-   # verbose=TRUE; compare = c("base_v23","base_v23_domed2Flt"); paths=NULL;
-   # trendline="vb";console=TRUE; compareanyway=TRUE
+   # verbose=TRUE; compare=c("GSVgarfish","SGgarfish"); paths=NULL;
+   # trendline="vb";console=FALSE; compareanyway=TRUE;selxlim=NULL;targpt=NULL
   setuphtml(extradir)
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
@@ -84,7 +88,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
   filename <- paste0(analysis,"_summary.png")
   projout <- projreceffects(compscenes=compscenes,fileout=filename,
                             rundir=extradir,legcex=1.0,
-                            startyr=2,console=console)
+                            startyr=2,console=console,targpt=targpt)
   addplot(filen=filename,rundir=extradir,category="summary",
           caption="Summary plot of dynamics.")
   dyn <- cbind(projout$spawnB,projout$totalC,projout$recruits,projout$depl)
@@ -203,7 +207,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
       }
     }
   } else {
-    if (verbose) cat("No conditional age-st-length data to plot. \n")
+    if (verbose) cat("No conditional age-at-length data to plot. \n")
   }
   # Age-composition of first scenario
   # agecomp flt1-------------------------------- 
@@ -235,7 +239,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
   }
   # lengthcomp flt1-----------------
   if (nrow(plotreport$lendbase) > 0) {  
-    if (verbose) cat("Generating tables tab \n")
+    if (verbose) cat("Generating length tables tab \n")
     fleetnames <- plotreport$FleetNames  
     lenprop <- getprops(plotreport$lendbase,fleetnames=fleetnames,
                         comptype="Len")
@@ -252,7 +256,6 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
       addplot(filen=filename,rundir=extradir,category="LenComp",
               caption=paste0("Comparison of Fit to Len Comps aggregated ",
                              "by Year and ",flname,"."))    
-      
       filename <- plotageprops(agecomp1=lenprop,whichfleet=fl,comptype="Len",
                                console=console,rundir=extradir,scenarios=compare) 
       addplot(filen=filename,rundir=extradir,category="LenComp",
@@ -267,12 +270,13 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
     nfleet <- length(fleets)
     for (fl in 1 : nfleet) { # fl = 1
       flname <- fleetnames[fleets[fl]]
+      flnum <- fleets[fl]
       gender <- c("f","m")
       flnames <- paste0(gender[1],lbins)
       mlnames <- paste0(gender[2],lbins)
       sexes <- unique(lencomp[,"sex"])
       yrs <- sort(unique(lencomp[,"year"]))
-      if (sexes > 1) { # sexes identified
+      if (length(sexes) > 1) { # sexes identified
         pickL <- which(colnames(lencomp) %in% c(flnames,mlnames))
         if ((nlbin * 2) != length(pickL)) {
           stop(cat("Number of length bins in lencomp differs from lbin_vector \n"))
@@ -283,6 +287,10 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
         rownames(mal) <- lbins; colnames(mal) <- yrs  
         # plot females
         if (sum(colSums(fem,na.rm=TRUE)) > 0) {
+          lencomp <- dat$lencomp
+          Nsamp <- cbind(sort(unique(lencomp$year)),
+                         tapply(lencomp$Nsamp,list(lencomp$year,lencomp$fleet),sum,na.rm=TRUE))
+          colnames(Nsamp) <- c("year","NorthN","SouthN")
           details <- plotcompdata(compdata=expandcolumns(fem),
                                   analysis=analysis,ylabel="Counts",
                                   console=console,outdir=extradir)
@@ -301,12 +309,18 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
           plotnull(msg="No male length data")
         }  
       } else { # end of if sexes > 1 loop
-        pickfl <- which((lencomp$fleet == fl) & (lencomp$year > 0))
+        pickfl <- which((lencomp$fleet == flnum) & (lencomp$year > 0))
         tmp <- lencomp[pickfl,]
         yrs <- sort(unique(tmp[,"year"]))
         mixed <- t(lencomp[pickfl,7:(nlbin+6)])
         rownames(mixed) <- lbins; colnames(mixed) <- yrs 
-        if (sum(colSums(mixed,na.rm=TRUE)) > 0) {
+        doplot <- FALSE
+        if (length(yrs) == 1) {
+          if (sum(mixed,na.rm=TRUE) > 0) doplot <- TRUE
+        } else {
+          if (sum(colSums(mixed,na.rm=TRUE)) > 0) doplot <- TRUE
+        }
+        if(doplot) { 
           details <- plotcompdata(compdata=expandcolumns(mixed),
                        analysis=analysis, ylabel="Counts",
                       console=console,outdir=extradir)
@@ -329,14 +343,14 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
       filename <- "Comparison_of_scenarios.png"
       projout <- projreceffects(compscenes=compscenes,fileout=filename,
                                 rundir=extradir,legcex=1.0,startyr=2,
-                                console=console)
+                                console=console,targpt=targpt,includeF=includeF)
       addplot(filen=filename,rundir=extradir,category="compare",
               caption="Comparison of Scenarios.")
     }
     outdepl <- tail(projout$depl,15)
     filename <- "Comparison_Projection_year_depletion.csv"
     addtable(outdepl,filen=filename,rundir=extradir,category="compare",
-             caption="Comparison of Final Years' delpetion levels.")
+             caption="Comparison of Final Years' depletion levels.")
     
     outcat <- tail(projout$totalC,15)
     filename <- "Comparison_Projected_catch_by_scenario.csv"
