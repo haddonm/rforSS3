@@ -174,6 +174,7 @@ comparestats <- function(x) { # x = compscenes
 #'     lengths are not present.
 #'
 #' @param x a set of plotreports/replists output from getreplists
+#' @param verbose default = TRUE, send messsages to the console
 #' 
 #' @seealso{
 #'   \link{getreplists}
@@ -184,7 +185,7 @@ comparestats <- function(x) { # x = compscenes
 #'
 #' @examples
 #' print("wait on example data")
-comparesummary <- function(x) { # x = compscenes
+comparesummary <- function(x,verbose=TRUE) { # x = compscenes
   x1 <- x$scenesum
   scenes <- names(x1) 
   nscen <- length(scenes)
@@ -711,7 +712,7 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
 #' @param scenarios the names of the scenarios, for labels.
 #' 
 #' @seealso{
-#'       \link{getageprops}, \link{makehtml}
+#'       \link{getageprops}
 #' }
 #'
 #' @returns invisibly the filename of the plot for use with makehtml
@@ -855,7 +856,7 @@ plotageprops <- function(agecomp1,agecomp2=NULL,whichfleet=1,height=9,
 #' @param scenarios the names of the scenarios, for labels.
 #'
 #' @seealso{
-#'       \link{getageprops}, \link{makehtml}
+#'       \link{getageprops}
 #' }
 #'
 #' @returns invisibly the filename of the plot for use with makehtml

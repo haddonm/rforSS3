@@ -788,9 +788,6 @@ getCase <- function(basecase,index=1,printout=TRUE) {
 #' @param verbose Should warnings and progress be reported to the console?
 #'     default = TRUE.
 #'     
-#' @seealso{
-#'   \link{SS_readdat_3.30}, \link{SS_output}
-#' }
 #'
 #' @returns invisibly returns the catches by fleet in a matrix
 #' @export
@@ -1805,7 +1802,9 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 #' @param destination - the directory into which the files are to be copied.
 #' @param replaceCS should the control and starter files be replaced by the
 #'     SS3 generated control.ss_new and starter.ss_new files (this is useful
-#'     if using the tune_comps function for iterstive re-weighting)
+#'     if using the tune_comps function for iterative re-weighting)
+#' @param replacepar should the estimated ss3.par file be saved as the 
+#'     analysis.par file as well. default=FALSE
 #' @param getfiles a vector of filenames to be retrieved from the origin
 #'     directory (usually calc) and copied to the destination directory. The
 #'     current files chosen are: CompReport.sso, covar.sso, CumReport.sso,
@@ -1813,9 +1812,6 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 #'     SIS_table.sso, warning.sso, ss3.par, ss3.std, control.ss_new, and
 #'     starter.ss_new
 #'     
-#' @seealso{
-#'     \link{tune_comps}
-#' }     
 #' 
 #' @return The files listed under getfiles are copied from the origin to the 
 #'     destination directory. If any are missing a warning is given
@@ -1835,7 +1831,7 @@ summarySS3 <- function(outfile) {  # outfile <- fileout
 #'  # run SS3
 #'  storeresults(calc,destination,replaceCS=FALSE)
 #' }
-storeresults <- function(origin,destination,replaceCS=FALSE,
+storeresults <- function(origin,destination,replaceCS=FALSE,replacepar=FALSE,
                          getfiles=c("CompReport.sso",
                          "covar.sso","CumReport.sso","echoinput.sso",
                          "Forecast-report.sso","Report.sso",
@@ -1852,6 +1848,13 @@ storeresults <- function(origin,destination,replaceCS=FALSE,
       } else {
          warning(paste0(x,"  missing from 'calc'   \n"))
       }
+   }
+   if (replacepar) {
+     analysis <- tail(unlist(strsplit(destination,split="/")),1) 
+     filen <- paste0(analysis,".par")
+     fileout <- pathtopath(destination,filen)
+     filename <- pathtopath(origin,"ss3.par") 
+     file.copy(filename,fileout,overwrite=TRUE,copy.date=FALSE)
    }
    if (replaceCS) {
      analysis <- tail(unlist(strsplit(destination,split="/")),1)

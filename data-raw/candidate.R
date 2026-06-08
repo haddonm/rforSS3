@@ -786,6 +786,63 @@ write.csv(prodscene,file=filename)
 read.csv(filename)
 
 
+# run ASPM-------------------------
+
+
+library(makehtml)
+library(rforSS3)
+library(r4ss)
+library(codeutils)
+library(hplot)
+
+ddir <- getDBdir()                          # get dropdir dir
+wdir <- pathtopath(ddir,"/projects/NSW_Kingfish/SS3run/")
+
+
+store <- pathtopath(wdir,"Kingfish2/") 
+analysis <- "newBC"
+destination <- pathtopath(store,analysis)
+
+
+datfile <- pathtopath(destination,paste0(analysis,".dat"))
+dat <- SS_readdat_3.30(file=datfile,verbose = FALSE,section = NULL)
+
+
+convertdata <- function(indat,lab1,fleet,fleetnames,verbose=TRUE) {
+#indat=catch;lab1="catch";fleet="fleet";fleetnames=dat$fleetnames  
+#indat=cpue;lab1="obs";fleet="index";fleetnames=dat$fleetnames  
+  pickF <- unique(indat[,fleet])
+  numce <- length(pickF)
+  if (verbose) cat(" fleets with",lab1,"named: ",fleetnames[pickF])
+  fltVar <- makelist(fleetnames[pickF])
+  for (i in 1:numce) {
+    picky <- which(indat[,fleet] == pickF[i])
+    fltVar[[i]] <- indat[picky,]
+  }
+  test <- lapply(fltVar,dim)
+  nflt <- length(test)
+  for (i in 1:nflt) {  # remove negative years
+    fltdat <- fltVar[[i]]
+    pickP <- which(fltdat[,"year"] > 0)
+    fltVar[[i]] <- fltdat[pickP,]
+  }  
+  yrs <- sapply(fltVar,"[[","year")
+  if (inherits(yrs,c("matrix"))) yrs <- as.data.frame(yrs)
+  first <- min(unlist(lapply(yrs,min,na.rm=TRUE)))
+  last <- max(unlist(lapply(yrs,max,na.rm=TRUE)))
+  allyrs <- first:last
+  nyrs <- length(allyrs)
+  columns <- "year"
+  for (i in 1:numce) columns <- c(columns,paste0(lab1,i))
+  outV <- matrix(NA,nrow=nyrs,ncol=length(columns),dimnames=list(allyrs,columns))
+  outV[,"year"] <- allyrs
+  for (i in 1:numce) {
+    pickFlt <- match(yrs[[i]],allyrs)
+    tmp <- as.matrix(fltVar[[i]][,lab1])
+    outV[pickFlt,(i+1)] <- tmp
+  }
+  return(outV)
+}
 
 
 
@@ -793,12 +850,15 @@ read.csv(filename)
 
 
 
+cpue <- dat$CPUE
 
+ce <- convertdata(indat=cpue,lab1="obs",fleet="index",
+                  fleetnames=dat$fleetnames)
 
+catch <- dat$catch
 
-
-
-
+fltcatch <- convertdata(indat=catch,lab1="catch",fleet="fleet",
+                  fleetnames=dat$fleetnames)
 
 
 

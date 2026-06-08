@@ -30,8 +30,3 @@ later versions.
 # getdatasets(plotreport=plotreport,store=store,analysis=analysis,
 #             verbose=FALSE)
 }
-\seealso{
-{
-\link{SS_readdat_3.30}, \link{SS_output}
-}
-}

@@ -4,10 +4,12 @@
 \alias{comparesummary}
 \title{comparesummary compares a set of plotreports/replists}
 \usage{
-comparesummary(x)
+comparesummary(x, verbose = TRUE)
 }
 \arguments{
 \item{x}{a set of plotreports/replists output from getreplists}
+
+\item{verbose}{default = TRUE, send messsages to the console}
 }
 \value{
 a list of the answer, likes, and model matrices.

@@ -52,7 +52,7 @@ NULL
 #' @import graphics
 #' @importFrom utils read.csv tail askYesNo str head write.table
 #' @importFrom codeutils pathtopath %ni% makelist which.closest getmax printV
-#' @importFrom codeutils expandcolumns 
+#' @importFrom codeutils expandcolumns getsingleNum
 #' @importFrom hplot plotnull plotprep parset pickbound plotcompdata 
 #' @importFrom makehtml setuphtml addtable addplot make_html
 #' @importFrom stats loess qlnorm aggregate lm coefficients

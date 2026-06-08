@@ -54,6 +54,6 @@ size (see getageprops). This can be applied to two or one scenario.
 }
 \seealso{
 {
-\link{getageprops}, \link{makehtml}
+\link{getageprops}
 }
 }

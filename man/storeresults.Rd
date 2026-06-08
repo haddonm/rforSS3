@@ -8,6 +8,7 @@ storeresults(
   origin,
   destination,
   replaceCS = FALSE,
+  replacepar = FALSE,
   getfiles = c("CompReport.sso", "covar.sso", "CumReport.sso", "echoinput.sso",
     "Forecast-report.sso", "Report.sso", "SIS_table.sso", "warning.sso", "ss3.par",
     "ss3.std", "ss.dat", "control.ss_new", "data_echo.ss_new", "starter.ss_new")
@@ -24,7 +25,10 @@ storeresults(
 
 \item{replaceCS}{should the control and starter files be replaced by the
 SS3 generated control.ss_new and starter.ss_new files (this is useful
-if using the tune_comps function for iterstive re-weighting)}
+if using the tune_comps function for iterative re-weighting)}
+
+\item{replacepar}{should the estimated ss3.par file be saved as the
+analysis.par file as well. default=FALSE}
 
 \item{getfiles}{a vector of filenames to be retrieved from the origin
 directory (usually calc) and copied to the destination directory. The
@@ -54,10 +58,5 @@ generally be the directory from which the SS3 files were copied.
  destination <- pathtopath(store,analysis)
  # run SS3
  storeresults(calc,destination,replaceCS=FALSE)
-}
-}
-\seealso{
-{
-\link{tune_comps}
 }
 }

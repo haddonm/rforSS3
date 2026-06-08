@@ -52,6 +52,6 @@ predicted values of two scenarios plotted on top of each other
 }
 \seealso{
 {
-\link{getageprops}, \link{makehtml}
+\link{getageprops}
 }
 }
