@@ -72,7 +72,7 @@ scenario (analysis). It produces a new internal website for viewing the
 new results.
 }
 \examples{
-# syntax:
+# syntax: amended CAAL tab to account for missing years of length for ageing data
 # do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
 #          store=store)
 }

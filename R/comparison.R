@@ -1045,7 +1045,7 @@ plotselex <- function(plotreport,sex="Female",upbound=0,legendcex=1.1,
     nsel <- ncol(hnts)
     pickY <- which(hnts[,"Yr"] %in% yrs)
     selvals <- hnts[pickY,6:nsel]
-    nyr <- length(yrs)
+    nyr <- length(pickY)
     limx <- range(lens)
     if (!is.null(selxlim)) limx <- selxlim
     plot(lens,selvals[1,],type="l",lwd=2,xlim=limx,ylim=c(0,1.1),yaxs="i",

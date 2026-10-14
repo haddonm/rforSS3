@@ -61,41 +61,55 @@ export(storeresults)
 export(summarizeSS3)
 export(summarySS3)
 import(graphics)
-importFrom(codeutils,"%ni%")
-importFrom(codeutils,expandcolumns)
-importFrom(codeutils,getmax)
-importFrom(codeutils,getsingleNum)
-importFrom(codeutils,makelist)
-importFrom(codeutils,pathtopath)
-importFrom(codeutils,printV)
-importFrom(codeutils,which.closest)
-importFrom(grDevices,dev.cur)
-importFrom(grDevices,dev.new)
-importFrom(grDevices,dev.off)
-importFrom(grDevices,graphics.off)
-importFrom(grDevices,png)
-importFrom(grDevices,rgb)
-importFrom(hplot,parset)
-importFrom(hplot,pickbound)
-importFrom(hplot,plotcompdata)
-importFrom(hplot,plotnull)
-importFrom(hplot,plotprep)
-importFrom(makehtml,addplot)
-importFrom(makehtml,addtable)
-importFrom(makehtml,make_html)
-importFrom(makehtml,setuphtml)
-importFrom(r4ss,SSMethod.Cond.TA1.8)
-importFrom(r4ss,SSMethod.TA1.8)
-importFrom(r4ss,SS_fitbiasramp)
-importFrom(r4ss,SS_readdat_3.30)
-importFrom(stats,aggregate)
-importFrom(stats,coefficients)
-importFrom(stats,lm)
-importFrom(stats,loess)
-importFrom(stats,qlnorm)
-importFrom(utils,askYesNo)
-importFrom(utils,head)
-importFrom(utils,read.csv)
-importFrom(utils,str)
-importFrom(utils,tail)
-importFrom(utils,write.table)
+importFrom(codeutils,
+  "%ni%",
+  expandcolumns,
+  getmax,
+  getsingleNum,
+  makelist,
+  pathtopath,
+  printV,
+  which.closest
+)
+importFrom(grDevices,
+  dev.cur,
+  dev.new,
+  dev.off,
+  graphics.off,
+  png,
+  rgb
+)
+importFrom(hplot,
+  parset,
+  pickbound,
+  plotcompdata,
+  plotnull,
+  plotprep
+)
+importFrom(makehtml,
+  addplot,
+  addtable,
+  make_html,
+  setuphtml
+)
+importFrom(r4ss,
+  SSMethod.Cond.TA1.8,
+  SSMethod.TA1.8,
+  SS_fitbiasramp,
+  SS_readdat_3.30
+)
+importFrom(stats,
+  aggregate,
+  coefficients,
+  lm,
+  loess,
+  qlnorm
+)
+importFrom(utils,
+  askYesNo,
+  head,
+  read.csv,
+  str,
+  tail,
+  write.table
+)

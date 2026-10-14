@@ -43,15 +43,15 @@
 #' @export
 #'
 #' @examples
-#' # syntax:
+#' # syntax: amended CAAL tab to account for missing years of length for ageing data
 #' # do_extra(plotreport=plotreport,extradir=extradir,analysis=analysis,
 #' #          store=store)
 do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
                      compare=NULL,paths=NULL,trendline=NULL,selxlim=NULL,
                      compareanyway=FALSE,targpt=NULL,includeF=TRUE) {
    # plotreport=plotreport;extradir=extradir;analysis=analysis; store=store
-   # verbose=TRUE; compare=c("GSVgarfish","SGgarfish"); paths=NULL;
-   # trendline="vb";console=FALSE; compareanyway=TRUE;selxlim=NULL;targpt=NULL
+   # verbose=TRUE; compare=NULL; paths=NULL;includeF=FALSE
+   # trendline="vb";console=TRUE; compareanyway=TRUE;selxlim=NULL;targpt=NULL
   setuphtml(extradir)
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
@@ -178,9 +178,14 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
               caption=paste0("Conditional Age-at_length data by year for ",
                              "females for fleet ",fleets[i]))
       alfem <- alout$alcomp
-      alfemout <- plotagelen(alcomp=alfem,gender="Female",fleet=fleets[i],
-                           console=console,plotdir=extradir,
-                           trendline=trendline,vbpar=vb1)
+      nyrs <- dim(alfem)[3]
+      whichyrs <- numeric(nyrs)
+      for (yr in 1:nyrs) whichyrs[yr] <- sum(colSums(alfem[,,yr]))
+      pickyrs <- which(whichyrs > 0)
+      alfemout <- plotagelen(alcomp=alfem[,,pickyrs],gender="Female",
+                             fleet=fleets[i],
+                             console=console,plotdir=extradir,
+                             trendline=trendline,vbpar=vb1)
       filename <- alfemout$filen
       addplot(filen=filename,rundir=extradir,category="CAAL",
               caption=paste0("Conditional Age-at_length data by year for ",
@@ -196,9 +201,14 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
                 caption=paste0("Conditional Age-at_length data by year for ",
                                "males for fleet ",fleets[i]))
         almal <- alout$alcomp
-        almalout <- plotagelen(alcomp=almal,gender="Male",fleet=fleets[i],
-                             console=console,plotdir=extradir,
-                             trendline=trendline,vbpar=vb2)
+        nyrs <- dim(almal)[3]
+        whichyrs <- numeric(nyrs)
+        for (yr in 1:nyrs) whichyrs[yr] <- sum(colSums(almal[,,yr]))
+        pickyrs <- which(whichyrs > 0)
+        almalout <- plotagelen(alcomp=almal[,,pickyrs],gender="Male",
+                               fleet=fleets[i],
+                               console=console,plotdir=extradir,
+                               trendline=trendline,vbpar=vb2)
         filename <- almalout$filen
         addplot(filen=filename,rundir=extradir,category="CAAL",
                 caption=paste0("Conditional Age-at_length data by year for ",
