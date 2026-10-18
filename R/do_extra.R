@@ -50,8 +50,8 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
                      compare=NULL,paths=NULL,trendline=NULL,selxlim=NULL,
                      compareanyway=FALSE,targpt=NULL,includeF=TRUE) {
    # plotreport=plotreport;extradir=extradir;analysis=analysis; store=store
-   # verbose=TRUE; compare=NULL; paths=NULL;includeF=FALSE
-   # trendline="vb";console=TRUE; compareanyway=TRUE;selxlim=NULL;targpt=NULL
+   # verbose=TRUE; compare=("SG_BC_5","SG_BC"); paths=NULL;includeF=FALSE
+   # trendline="vB";console=TRUE; compareanyway=TRUE;selxlim=NULL;targpt=0.5
   setuphtml(extradir)
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
@@ -219,6 +219,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
   } else {
     if (verbose) cat("No conditional age-at-length data to plot. \n")
   }
+  if (verbose) cat("CAAL tab finished \n")
   # Age-composition of first scenario
   # agecomp flt1-------------------------------- 
   if (nrow(plotreport$agedbase) > 0) {
@@ -299,11 +300,13 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
         if (sum(colSums(fem,na.rm=TRUE)) > 0) {
           lencomp <- dat$lencomp
           Nsamp <- cbind(sort(unique(lencomp$year)),
-                         tapply(lencomp$Nsamp,list(lencomp$year,lencomp$fleet),sum,na.rm=TRUE))
+                         tapply(lencomp$Nsamp,list(lencomp$year,lencomp$fleet),
+                                sum,na.rm=TRUE))
           colnames(Nsamp) <- c("year","NorthN","SouthN")
           details <- plotcompdata(compdata=expandcolumns(fem),
-                                  analysis=analysis,ylabel="Counts",
-                                  console=console,outdir=extradir)
+                                  analysis=paste0(analysis,"_Female_",flname),
+                                  ylabel="Counts",console=console,
+                                  outdir=extradir)
           addplot(filen=details$filename,rundir=extradir,category="LenComp",
                   caption=details$caption)
         } else {
@@ -311,8 +314,9 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
         }
         if (sum(colSums(mal,na.rm=TRUE)) > 0) {
           details <- plotcompdata(compdata=expandcolumns(mal),
-                                  analysis=analysis,ylabel="Counts",
-                                  console=console,outdir=extradir)
+                                  analysis=paste0(analysis,"_Male_",flname),
+                                  ylabel="Counts",console=console,
+                                  outdir=extradir)
           addplot(filen=details$filename,rundir=extradir,category="LenComp",
                   caption=details$caption)          
         } else {
@@ -332,8 +336,9 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
         }
         if(doplot) { 
           details <- plotcompdata(compdata=expandcolumns(mixed),
-                       analysis=analysis, ylabel="Counts",
-                      console=console,outdir=extradir)
+                                  analysis=paste0(analysis,"_Mixed_",flname), 
+                                  ylabel="Counts",console=console,
+                                  outdir=extradir)
           addplot(filen=details$filename,rundir=extradir,category="LenComp",
                   caption=details$caption)          
         } else {
@@ -344,6 +349,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
   } else { 
     warning(cat("No length composition data to plot.  \n"))
   }  
+  if (verbose) cat("lengthcomp tab completed \n")
   # comparison tab-------------
   if ((!is.null(compare)) | (!is.null(paths))) {
     if (verbose) cat("Generating comparison tab \n")

@@ -865,28 +865,6 @@ getNum <- function(intxt,index=1) {
    return(ans)
 } # end of getNum
 
-
-#' @title getStatus - extract the values of B0 and Current Depletion
-#'
-#' @description getStatus extracts the values of all the likelihoods used, as
-#'    well as the B0 and Current Depletion. Best displayed with round(,7).
-#'    
-#' @param txtlist the output object from applying the SS_output function in SS3
-#' 
-#' @return a vector of all likelihoods, B0 and current depletion
-#' @export getStatus
-#' 
-#' @examples
-#' print("run an example or load a plotreport file and apply this function")
-getStatus <- function(txtlist) {  # txtlist <- plotreport
-  tmp <- txtlist$likelihoods_used
-  label <- rownames(tmp)
-  rbind(tmp,c(txtlist$SBzero,NA),c(txtlist$current_depletion,NA))
-  tmp1 <- rbind(tmp,c(txtlist$SBzero,NA),c(txtlist$current_depletion,NA))
-  rownames(tmp1) <- c(label,"SBzero","Current_Depl")
-  return(tmp1)
-}  # end of getStatus
-
 #' @title getproduction extracts MSY related information from the Report.sso
 #' 
 #' @description getproduction is used to extract MSY related information from 
@@ -992,6 +970,78 @@ getprops <- function(compbase,fleetnames,comptype="Len") {
   # agg
   return(list(propyr=propyr,exppropyr=exppropyr,agg=agg,Nobs=Nobs,effN=effN))
 } # end of getprops
+
+#' @title getsadCE calculates the sum of absolute difference between CPUE series
+#' 
+#' @description getsadCE compares the CPUE time-series by calculating the 
+#'     absolute difference between the observed and expected values for each 
+#'     scenario and each fleet.
+#'
+#' @param compscenes the output from the function getreplists
+#'
+#' @returns a matrix of scens by fleet of sum of absolute differences for the
+#'     CPUE
+#' @export
+#'
+#' @examples
+#' # getreplists(store=store,scenes=c("scene1","scene2"),listname="plotreport")
+#' # getsadCE(compscenes)
+getsadCE <- function(compscenes) {
+  cpue <- compscenes$cpue
+  scenes <- names(cpue)
+  nscene <- length(scenes)
+  fleets <- unique(cpue[[1]][,"Fleet_name"])
+  nfleet <- length(fleets)
+  columns <- c(1,2,4,9,10,11,14,17)
+  cpue[[1]][1:42,columns]
+  sadCE <- matrix(0,nrow=nscene,ncol=nfleet,dimnames=list(scenes,fleets))
+  for (scen in 1:nscene) { # scen=1
+    CE <- cpue[[scen]]
+    for (flt in 1:nfleet) {
+      pickF <- which(CE[,"Fleet_name"] == fleets[flt])
+      sadCE[scen,flt] <- sum(abs(CE[pickF,"Obs"] - CE[pickF,"Exp"]))
+    }
+  }
+  return(sadCE)
+} # end of getsadCE
+
+#' @title getsadLen calculates sum of absolute difference for length bin series
+#' 
+#' @description getsadLen compares the length bin time-series by calculating the 
+#'     absolute difference between the observed and expected values for each 
+#'     scenario and each fleet.
+#'
+#' @param compscenes the output from the function getreplists
+#' @param fleetnames the fullist of fleetnames from plotreport$FlleetNames
+#'
+#' @returns a matrix of scens by fleet of sum of absolute differences of the 
+#'     proportions by length bin
+#' @export
+#'
+#' @examples
+#' # syntax  getreplists(store=store,scenes=c("scene1","scene2"),
+#' #                     listname="plotreport")
+#' # fleetnames <- plotreport$FleetNames
+#' # getsadLen(compscenes,fleetnames)
+getsadLen <- function(compscenes,fleetnames) {
+  lendat <- list(compscenes$total[[1]]$lendbase,compscenes$total[[2]]$lendbase)
+  scenes <- names(compscenes$total)
+  nscenes <- length(scenes)
+  names(lendat) <- scenes
+  #  columns <- c(1,6,9,12,13,16,17,18,20,21,22)
+  fleets <- unique(lendat[[1]][,"Fleet"])  
+  nfleet <- length(fleets)
+  sadLen <- matrix(0, nrow=nscenes,ncol=nfleet,
+                   dimnames=list(scenes,fleetnames[fleets]))
+  for (scen in 1:nscenes) {
+    lenflt <- lendat[[scen]] 
+    for (flt in 1:nfleet) {
+      pickF <- which(lenflt[,"Fleet"] == fleets[flt])
+      sadLen[scen,flt] <- sum(abs(lenflt[pickF,"Obs"] - lenflt[pickF,"Exp"]))
+    }
+  } 
+  return(sadLen)
+} # end of getsadLen
 
 #' @title getStatus - extract the values of B0 and Current Depletion
 #'
@@ -1367,7 +1417,7 @@ plotagecomp <- function(compsex,gender,fleet,rescale=0,console=TRUE,
     radcomp <- sqrt(alcomp)
     scale <- max(radcomp,na.rm=TRUE)
     radcomp <- radcomp/scale
-    xvect <- rep(agebins,nlbins)
+    xvect <- rep(agebins,nlbins) + 0.5
     yvect <- rep(lenbins,nages)
     if (!console) {
       fileout <- paste0("Scaled_AgeCompdata_",fleet,"_",gender,".png")
@@ -1686,6 +1736,40 @@ plotss3catches <- function(catches,extradir,analysis,console=TRUE) {
 removeEmpty <- function(invect) {
    return(invect[nchar(invect) > 0])
 }
+
+#' @title replacepar renames the ss3.par in destination to analysis.par
+#' 
+#' @description replacepar is used when running SS3 and rforSS3 to rename the 
+#'     ss3.par that is copied over to the analysis subdirectory in the 
+#'     store directory. It merely copies the contents of the ss3.par file into
+#'     a file named analysis.par, replacing the same file if it is already 
+#'     present. This is useful if solutions are taking a long time so, when
+#'     incrementally exploring alternative model structures one can use the 
+#'     latest set of parameters as a starting point. This could be done inside
+#'     storeresults, but that might replace a set of parameters that have 
+#'     'worked' with some that don;t.  If this is used, do not
+#'     forget to change the line in the starter file to use the par file.
+#'
+#' @param destination the combination of store and analysis directories
+#'
+#' @returns nothing but if ss3.par is present in analysis it will be copied 
+#'     into analysis.par
+#' @export
+#'
+#' @examples
+#' # syntax replacepar(destination)
+replacepar <- function(destination) {
+  analysis <- endpart(destination)  
+  if (file.exists(pathtopath(destination,"ss3.par"))) {  
+    filen <- paste0(analysis,".par")
+    fileout <- pathtopath(destination,filen)
+    filename <- pathtopath(destination,"ss3.par") 
+    file.copy(filename,fileout,overwrite=TRUE,copy.date=TRUE)
+    cat("The new ss3.par has been renamed ",filen,"\n")
+  } else {
+    cat("ss3,par not present in the sub-directory ",analysis,"\n")
+  }
+} # end of replacepar
 
 #' @title sel24 implements SS3's selectivity pattern 24
 #' 
