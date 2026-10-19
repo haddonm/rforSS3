@@ -1432,11 +1432,13 @@ plotagecomp <- function(compsex,gender,fleet,rescale=0,console=TRUE,
       nobs <- sum(alcomp[,,i],na.rm=TRUE)
       label <- paste0(yrs[i],"_",nobs)
       maxy <- getmax(yvect)
-      plot(xvect,yvect,type="n",xlab="",ylab=label,ylim=c(0,maxy),
-           panel.first=grid())
+      plot(xvect,yvect,type="n",xlab="",ylab=label,ylim=c(0,maxy),xlim=c(-1,11),
+           panel.first=grid(),xaxs="i")
       for (age in 1:nages) {
         if (sum(agelen[,age],na.rm=TRUE) > 0) {
-          symbols(rep((age-1),nlbins),lenbins,circles=(agelen[,age]*rescale),
+          circs <- (agelen[,age]*rescale)
+          circs[circs < 0.175] <- 0.175
+          symbols(rep((age-1),nlbins),lenbins,circles=circs,
                   inches=FALSE,bg=rgb(1, 0, 0, 0.5), fg = "grey",
                   xlab="",ylab="",add=TRUE)
         }
