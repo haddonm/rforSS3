@@ -1027,6 +1027,9 @@ plotselex <- function(plotreport,sex="Female",upbound=0,legendcex=1.1,
   uniqueyrs <- sort(unique(sel$Yr))
   pickyrs <- which((uniqueyrs >= startyr) & (uniqueyrs <= endyr))
   yrs <- uniqueyrs[pickyrs]
+  nyrs <- length(yrs)
+  yrs <- yrs[seq(1,nyrs,2)] # remove duplicates
+  nyrs <- length(yrs)
   if (console) { filen="" } else {
     years <- paste0(yrs,"_",collapse="")
     txt <- paste0("selectivity_for_",years,"for_",sexname,".png")
