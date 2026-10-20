@@ -47,7 +47,10 @@ biomass depletion, standardized Instantenous F, and F from biggest Fleet
 plotreceffects generates a combined plot of SpawnB, Catches,
 Recruits, and spawning biomass depletion for all scenarios being
 compared. This assumes all scenarios have similar properties such as
-having the same endyr and same number of parameters.
+having the same endyr and same number of parameters. If not then the
+empty years in whichever scenarios have fewer years are filled with
+NAs so that plots can still be made and all lists are converted to
+matrices. All ploted variables now fixed for different years
 }
 \examples{
 # require(hplot)

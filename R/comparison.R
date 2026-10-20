@@ -458,9 +458,12 @@ getreplists <- function(store,listname,scenes,paths=NULL,verbose=TRUE) {
   if (nscen > 1) {
     catchdims <- sapply(catches,dim)
     if (sum(catchdims[,1]) - sum(catchdims[,2]) != 0) dimdiff <- TRUE
-    if (dimdiff) warning(cat("Dimensions for dynamics differ either in years ",
-                             "or someother factor. Are you using CondAge@Len? ",
-                         "Many of the comparison plots and table will fail \n"))
+    if (dimdiff) {
+      warning(cat("Dimensions for dynamics differ either in years ",
+                  "or some other factor. Are you using CondAge@Len? ",
+                  "Many of the comparison plots and table will fail, ",
+                  "but the output object is still created. \n"))
+    }
   }
   return(list(timeseries=dyn,catches=catches,total=total,scenesum=scenesum,
               scenes=scenes,dimdiff=dimdiff,cpue=cpue))
@@ -523,7 +526,10 @@ projectedcatches <- function(plotreport) {
 #' @description plotreceffects generates a combined plot of SpawnB, Catches, 
 #'     Recruits, and spawning biomass depletion for all scenarios being 
 #'     compared. This assumes all scenarios have similar properties such as 
-#'     having the same endyr and same number of parameters.
+#'     having the same endyr and same number of parameters. If not then the
+#'     empty years in whichever scenarios have fewer years are filled with
+#'     NAs so that plots can still be made and all lists are converted to 
+#'     matrices. All ploted variables now fixed for different years
 #'
 #' @param compscenes the output from getreplists, this is a list of three lists
 #'     the timeseries from each scenario's SS_output replist, the catches from
@@ -557,19 +563,40 @@ projectedcatches <- function(plotreport) {
 #' # projout <- projreceffects(compscenes,rundir="",console=TRUE)
 #' # str(projout)
 projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
-                           startyr=2,console=TRUE,targpt=NULL, includeF=TRUE) {
+                            startyr=2,console=TRUE,targpt=NULL, includeF=TRUE) {
+  do_diff <- function(yrs,scenes,inlist) {
+    nscen <- length(scenes)
+    nyrs <- length(yrs)
+    tmp <- matrix(0,nrow=nyrs,ncol=nscen,dimnames=list(yrs,scenes))
+    for (i in 1:nscen) { # i = 1
+      thevar <- inlist[[i]]
+      if (length(thevar) == nyrs) {
+        tmp[,i] <- thevar
+      } else {
+        thevar2 <- c(thevar,rep(NA,(nyrs - length(thevar)))) 
+        tmp[,i] <- thevar2
+      }
+    } 
+    return(tmp)
+  } # end of do_diff
   # compscenes=compscenes;fileout="";rundir=extradir;legcex=1.0
-  # startyr=2;console=TRUE
+  # startyr=2;console=TRUE; includeF=TRUE; targpt=0.5
   if (startyr < 2) startyr <- 2  # avoiding input error
+  scenes <- compscenes$scenes
+  nscen <- length(scenes)
   catches <- compscenes$catches
-  scenes <- names(catches)
-  nscen <- length(catches)
-  numrow <- nrow(catches[[1]])
-  pickyrs <- startyr:numrow  # omit the first row
-  allyrs <- catches[[1]]$year
-  yrs <- allyrs[pickyrs]
-  nyrs <- length(yrs)
-  endyr <- compscenes$total[[1]]$endyr
+  dimdiff <- FALSE
+  qsame <- sapply(catches,nrow)
+  if (length(unique(qsame)) > 1) {
+    dimdiff <- TRUE
+    yrs <- catches[[which.max(qsame)]]$year  
+  } else {
+    yrs <- catches[[1]]$year  
+  }
+  nyrs <- length(yrs)  
+  pickyrs <- startyr:nyrs  # omit the first row
+  plotyrs <- yrs[pickyrs]
+  endyr <- sapply(compscenes$total,"[[","endyr")
   oldpar <- par(no.readonly=TRUE)
   filen <- ""
   if (!console) {
@@ -583,99 +610,117 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
     parset(plots=c(2,2),cex=1.0,margin=c(0.3,0.45,0.1,0.1),outmargin=c(1,0,0,0))    
   }
   spawnB <- sapply(catches,"[[","SpawnB")  # do spawning biomass
-  rownames(spawnB) <- allyrs
+  if (dimdiff) spawnB <- do_diff(yrs,scenes,spawnB)
   maxy <- getmax(spawnB[pickyrs,])
-  plot(yrs,spawnB[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+  plot(plotyrs,spawnB[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Spawning Biomass",xlab="",panel.first=grid())
   if (nscen > 1) 
-    for (i in 2:nscen) lines(yrs,spawnB[pickyrs,i],lwd=2,col=i)
-  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
+    for (i in 2:nscen) lines(yrs[pickyrs],spawnB[pickyrs,i],lwd=2,col=i)
+  abline(v=(endyr + 0.5),lwd=1,col=1:nscen,lty=3)
   mtext("(a) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end spawning biom
   totalC <- sapply(catches,"[[","TotalC")  # do catches
-  rownames(totalC) <- allyrs
+  if (dimdiff) totalC <- do_diff(yrs,scenes,totalC)  
   maxy <- getmax(totalC[pickyrs,])
-  plot(yrs,totalC[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+  plot(plotyrs,totalC[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Catch (t)",xlab="",panel.first=grid())
   if (nscen > 1) 
-    for (i in 2:nscen) lines(yrs,totalC[pickyrs,i],lwd=2,col=i)
-  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
+    for (i in 2:nscen) lines(plotyrs,totalC[pickyrs,i],lwd=2,col=i)
+  abline(v=(endyr + 0.5),lwd=1,col=1:nscen,lty=3)
   legend("topleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
   mtext("(b) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end catch
   recruits <- sapply(catches,"[[","recruits") # do Recruits
-  rownames(recruits) <- allyrs
+  if (dimdiff) recruits <- do_diff(yrs,scenes,recruits)  
   projvals <- tail(recruits,1)
   maxy <- getmax(recruits[pickyrs,])
-  plot(yrs,recruits[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+  plot(plotyrs,recruits[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Recruits",xlab="",panel.first=grid())
-  lines(yrs,rep(projvals[1],nyrs),lwd=1,lty=2,col=1)
+  lines(plotyrs,rep(projvals[1],(nyrs-1)),lwd=1,lty=2,col=1)
   if (nscen > 1) {
     for (i in 2:nscen) {
-      lines(yrs,recruits[pickyrs,i],lwd=2,col=i)
-      lines(yrs,rep(projvals[i],nyrs),lwd=1,lty=2,col=i)
+      lines(plotyrs,recruits[pickyrs,i],lwd=2,col=i)
+      lines(plotyrs,rep(projvals[i],(nyrs-1)),lwd=1,lty=2,col=i)
     }
   }
-  abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
+  abline(v=(endyr + 0.5),lwd=1,col=1:nscen,lty=3)
   mtext("(c) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
   depl <- sapply(catches,"[[","Depletion")  # do Depletion
-  rownames(depl) <- allyrs
+  if (dimdiff) depl <- do_diff(yrs,scenes,depl)  
   maxy <- getmax(depl[pickyrs,])
-  plot(yrs,depl[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+  plot(plotyrs,depl[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
        ylab="Spawning Biomass Depletion",xlab="",panel.first=grid())
   if (nscen > 1)
-    for (i in 2:nscen) lines(yrs,depl[pickyrs,i],lwd=2,col=i)
-  abline(v=(endyr + 0.5),lwd=1,col=1,lty=2)
+    for (i in 2:nscen) lines(plotyrs,depl[pickyrs,i],lwd=2,col=i)
+  abline(v=(endyr + 0.5),lwd=1,col=1:nscen,lty=2)
   abline(h=0.2,lwd=2,col=2,lty=2)
   if (!is.null(targpt)) abline(h=targpt,lwd=2,col=3,lty=2)
   mtext("(d) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end SSBdepl
   # plot instantaneous F rates
   if (includeF) {
     total <- compscenes$total
-    scenes <- names(total)
-    nscen <- length(scenes)
-    instF <- makelist((scenes))
+    Fstd <- makelist(scenes)
+    instF <- makelist(scenes)
     fleetF <- which(total[[1]]$fleet_type == 1)
     nfleet <- length(fleetF)
-    for ( i in 1:nscen) {
-      instF[[i]] <- total[[i]]$exploitation[,c(1,4:(6+nfleet))]
+    if (nscen == 1) {
+      instF[[1]] <- total[[1]]$exploitation[,c(1,4:(6+nfleet))]
+      Fstd <- as.matrix(instF[[1]][,"F_std"])
+      fyrs <- instF[[1]][,"Yr"]
+      rownames(Fstd) <- fyrs   
+      maxy <- getmax(Fstd)
+      plot(fyrs,Fstd[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+           ylab="Overall Instantaneous F",xlab="",panel.first=grid())
+      if (nscen > 1)
+        for (i in 2:nscen) lines(fyrs,Fstd[,i],lwd=3,col=i)
+    } else {
+      for (i in 1:nscen) { # i = 1
+        instF[[i]] <- total[[i]]$exploitation[,c(1,4:(6+nfleet))]
+        Fstd[[i]] <- instF[[i]][,"F_std"]
+      }
+      if (dimdiff) {
+        Fstd <- do_diff(yrs,scenes,Fstd)   
+      } else {
+        tmp <- matrix(0,nrow=fyrs,ncol=nscen,dimnames=list(plotyrs,scenes)) 
+        for (i in 1:scen) tmp[,i] <- Fstd[[i]]
+        Fstd <- tmp
+      }
+      maxy <- getmax(Fstd[pickyrs,])
+      plot(plotyrs,Fstd[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+           ylab="Overall Instantaneous F",xlab="",panel.first=grid())
+      if (nscen > 1)
+        for (i in 2:nscen) lines(plotyrs,Fstd[pickyrs,i],lwd=3,col=i)
     }
-    first <- instF[[1]]
-    allyrs <- first[,"Yr"]
-    fnyrs <- length(allyrs)
-    pickfyrs <- (startyr-1):fnyrs 
-    yrs <- allyrs[pickfyrs]
-    Fstd <- sapply(instF,"[[","F_std")
-    maxy <- getmax(Fstd[pickfyrs,])
-    plot(yrs,first[pickfyrs,"F_std"],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
-         ylab="Overall Instantaneous F",xlab="",panel.first=grid())
-    if (nscen > 1)
-      for (i in 2:nscen) lines(yrs,instF[[i]][pickfyrs,"F_std"],lwd=3,col=i)
-    abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
-    legend("topleft",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
+    
+    abline(v=(endyr + 0.5),lwd=1,col=1:nscen,lty=3)
+    legend("topright",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
     mtext("(e) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
     # Plot individual fleet with maximum F
     numcol <- whchflt <- numeric(nscen)
     flnames <- makelist(scenes)
     fleetF <- makelist(scenes)
     pickFlt <- NULL
-    yrs <- instF[[1]][,"Yr"]
-    nyrs <- length(yrs)
-    maxFL <- matrix(0,nrow=nyrs,ncol=nscen)
-    for (i in 1:nscen) {
+    nyrsm1 <- length(yrs)-1
+    maxFL <- matrix(0,nrow=(nyrsm1),ncol=nscen)
+    for (i in 1:nscen) { # i =2
       numcol[i] <- ncol(instF[[i]])
       flnames[[i]] <- colnames(instF[[i]])
       fleetF[[i]] <- apply(instF[[i]],2,max,na.rm=TRUE)[5:numcol[i]]
       whchflt[i] <- which.max(fleetF[[i]])
       pickFlt <- c(pickFlt,names(which.max(fleetF[[i]])))
-      maxFL[,i] <- instF[[i]][,pickFlt[i]]
+      tmp <- instF[[i]][,pickFlt[i]]
+      if (length(tmp) == (nyrsm1)) {
+        maxFL[,i] <- tmp
+      } else {
+        maxFL[,i] <- c(tmp,rep(NA,(nyrsm1 - length(tmp))))
+      }
     }
-    rownames(maxFL) <- yrs; colnames(maxFL) <- pickFlt
+    rownames(maxFL) <- plotyrs; colnames(maxFL) <- pickFlt
     Flmax <- names(which.max(apply(maxFL,2,max)))
     maxy <- getmax(maxFL)
-    plot(yrs,maxFL[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+    plot(plotyrs,maxFL[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
          ylab=paste0("Fleet with Maximum F: ",Flmax),xlab="",panel.first=grid())
     if (nscen > 1)
-      for (i in 2:nscen) lines(yrs,maxFL[,i],lwd=2,col=i)
-    abline(v=(endyr + 0.5),lwd=1,col=1,lty=3)
+      for (i in 2:nscen) lines(plotyrs,maxFL[,i],lwd=2,col=i)
+    abline(v=(endyr + 0.5),lwd=1,col=1:nscen,lty=3)
     mtext("(f) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
     mtext("Year",side=1,outer=TRUE,cex=1.2,line=-0.2)
   } else {
@@ -686,7 +731,7 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   on.exit(par(oldpar))
   return(invisible(list(spawnB=spawnB,totalC=totalC,recruits=recruits,
                         depl=depl,instF=instF,maxFL=maxFL)))
-} # end of projreceffects
+}# end of projreceffects
 
 #' @title plotageprops compares annual age composition data
 #' 
