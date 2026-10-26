@@ -656,6 +656,7 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
   mtext("(d) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end SSBdepl
   # plot instantaneous F rates
   if (includeF) {
+    fyrs <- length(plotyrs)
     total <- compscenes$total
     Fstd <- makelist(scenes)
     instF <- makelist(scenes)
@@ -664,15 +665,14 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
     if (nscen == 1) {
       instF[[1]] <- total[[1]]$exploitation[,c(1,4:(6+nfleet))]
       Fstd <- as.matrix(instF[[1]][,"F_std"])
-      fyrs <- instF[[1]][,"Yr"]
-      rownames(Fstd) <- fyrs   
+      rownames(Fstd) <- plotyrs   
       maxy <- getmax(Fstd)
-      plot(fyrs,Fstd[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+      plot(plotyrs,Fstd[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
            ylab="Overall Instantaneous F",xlab="",panel.first=grid())
       if (nscen > 1)
-        for (i in 2:nscen) lines(fyrs,Fstd[,i],lwd=3,col=i)
+        for (i in 2:nscen) lines(plotyrs,Fstd[,i],lwd=3,col=i)
     } else {
-      for (i in 1:nscen) { # i = 1
+      for (i in 1:nscen) { # i = 2
         instF[[i]] <- total[[i]]$exploitation[,c(1,4:(6+nfleet))]
         Fstd[[i]] <- instF[[i]][,"F_std"]
       }
@@ -680,16 +680,15 @@ projreceffects <- function(compscenes,fileout="temp.png",rundir="",legcex=1.25,
         Fstd <- do_diff(yrs,scenes,Fstd)   
       } else {
         tmp <- matrix(0,nrow=fyrs,ncol=nscen,dimnames=list(plotyrs,scenes)) 
-        for (i in 1:scen) tmp[,i] <- Fstd[[i]]
+        for (i in 1:nscen) tmp[,i] <- Fstd[[i]]
         Fstd <- tmp
       }
-      maxy <- getmax(Fstd[pickyrs,])
-      plot(plotyrs,Fstd[pickyrs,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
+      maxy <- getmax(Fstd)
+      plot(plotyrs,Fstd[,1],type="l",lwd=2,col=1,ylim=c(0,maxy),yaxs="i",
            ylab="Overall Instantaneous F",xlab="",panel.first=grid())
       if (nscen > 1)
-        for (i in 2:nscen) lines(plotyrs,Fstd[pickyrs,i],lwd=3,col=i)
+        for (i in 2:nscen) lines(plotyrs,Fstd[,i],lwd=3,col=i)
     }
-    
     abline(v=(endyr + 0.5),lwd=1,col=1:nscen,lty=3)
     legend("topright",legend=scenes,lwd=3,col=1:nscen,cex=legcex,bty="n") 
     mtext("(e) ",side=1,line=-1.1,outer=FALSE,adj=1,cex=1.20) # end recruits
