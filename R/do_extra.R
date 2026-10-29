@@ -140,7 +140,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
   addplot(filen=filename,rundir=extradir,category="catch",
           caption=paste0("Reported catches by Year and fleet.",
                    " Recreational catches are interpolated between surveys",
-                         " The red line in lowe plot is a loess curve"))    
+                         " The red line in lower plot is a loess curve"))    
   
   filename <- paste0(analysis,"_Catch-by-Fleet.csv")
   allcatch <- cbind(catches,total=rowSums(catches,na.rm=TRUE))
