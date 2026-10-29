@@ -5,7 +5,6 @@
 \title{SS3inputdata extracts plots and tabulates the input data to SS3}
 \usage{
 SS3inputdata(
-  plotreport,
   store,
   analysis,
   plotdir,
@@ -17,8 +16,6 @@ SS3inputdata(
 )
 }
 \arguments{
-\item{plotreport}{the output from SS_output}
-
 \item{store}{the full path to the directory within which the analysis
 sub-directory is held}
 
@@ -48,12 +45,15 @@ nothing but it can generate an internal website with multiple plots
 as png files, and tables as csv files.
 }
 \description{
-SS3inputdata extracts plots and tabulates the input data to an
-SS3 scenario by using the SS_readdat_3.30 function from r4ss. It only
+SS3inputdata extracts, plots, and tabulates the input data to
+an SS3 scenario by using the SS_readdat_3.30 function from r4ss. It only
 deals with the catches, the index or CPUE, any length-composition data,
-and any age-composition data, It provides saved plots and tables
-providing a basic review of what information SS3 as to work with.
+any age-composition data, snd some structural details, It provides saved
+plots and tables providing a basic review of what information SS3 as
+to work with.
 }
 \examples{
 print("wait on data sets")
+# minimum syntax SS3inputdata(store=store,analysis=analysis,plotdir=plotdir,
+#                             lenrowhgt=3)
 }

@@ -1,8 +1,27 @@
 
 
 
-getSS3datasets <- function(plotreport,store,analysis,verbose=TRUE) {
-# plotreport = plotreport;store=store;analysis=analysis;verbose=TRUE
+#' @title getSS3datasets uses SS_readdat_3.30 to extract data sets used by SS3
+#' 
+#' @description getSS3datasets only extracts the catches, the index or CPUE, 
+#'     any length-composition data, any age-composition data, and some 
+#'     structural details, It puts all of these inside a list, which is returned
+#'
+#' @param analysis the name of the SS3 model being explored
+#' @param store the full path to the directory within which the analysis 
+#'     sub-directory is held 
+#' @param ss3datafile if not using store and analysis to generate path to data-
+#'     file, then enter the full path here, toehrwise leave as NULL
+#' @param verbose should progress updates be sent ot the console, default=TRUE
+#'
+#' @returns invisibly a list containing the catches, the cpue, the agecomp,
+#'     the lencomp, and structural details in struct
+#' @export
+#'
+#' @examples
+#' # syntax datasets <- getSS3datasets(store,analysis,verbose=TRUE)
+getSS3datasets <- function(store,analysis,ss3datafile=NULL,verbose=TRUE) {
+# store=store;analysis=analysis;verbose=TRUE
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
   dat <- SS_readdat_3.30(file=datfile,verbose=verbose)
@@ -120,18 +139,18 @@ plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) {
   }
   if (!console) dev.off()
   return(invisible(filen))
-}
+} # end of plotfltcpue
 
 
 #' @title SS3inputdata extracts plots and tabulates the input data to SS3
 #' 
-#' @description SS3inputdata extracts plots and tabulates the input data to an
-#'     SS3 scenario by using the SS_readdat_3.30 function from r4ss. It only 
+#' @description SS3inputdata extracts, plots, and tabulates the input data to 
+#'     an SS3 scenario by using the SS_readdat_3.30 function from r4ss. It only 
 #'     deals with the catches, the index or CPUE, any length-composition data,
-#'     and any age-composition data, It provides saved plots and tables 
-#'     providing a basic review of what information SS3 as to work with. 
+#'     any age-composition data, snd some structural details, It provides saved 
+#'     plots and tables providing a basic review of what information SS3 as 
+#'     to work with. 
 #'
-#' @param plotreport the output from SS_output
 #' @param analysis the name of the SS3 model being explored
 #' @param store the full path to the directory within which the analysis 
 #'     sub-directory is held 
@@ -155,13 +174,14 @@ plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) {
 #'
 #' @examples
 #' print("wait on data sets")
-SS3inputdata <- function(plotreport,store,analysis,plotdir,addtitle="",
+#' # minimum syntax SS3inputdata(store=store,analysis=analysis,plotdir=plotdir,
+#' #                             lenrowhgt=3)
+SS3inputdata <- function(store,analysis,plotdir,addtitle="",
                          console=FALSE,verbose=TRUE,subsetC=NULL,
                          lenrowhgt=3) {
   dirExists(plotdir)
   setuphtml(plotdir)
-  datasets <- getSS3datasets(plotreport = plotreport,store=store,
-                             analysis=analysis,verbose=TRUE)
+  datasets <- getSS3datasets(store=store,analysis=analysis,verbose=TRUE)
   struct <- datasets$struct
   nfleet <- struct$nfleet
   fleetnames <- struct$fleetnames
@@ -236,7 +256,7 @@ SS3inputdata <- function(plotreport,store,analysis,plotdir,addtitle="",
     if (!console) {
       addplot(filen=filename,rundir=plotdir,category="CPUE",
               caption="Observed CPUE plot for each fleet. redline = loess.")
-      filename <- "CPUE-table-from-plotreport.csv"
+      filename <- "CPUE-table-from-SS3-datafile.csv"
       addtable(cpue,filen=filename,rundir=plotdir,category="CPUE",
                caption="CPUE observations into SS3.") 
     }
@@ -397,9 +417,32 @@ SS3inputdata <- function(plotreport,store,analysis,plotdir,addtitle="",
         if ((males) & (females)) {
           sampf <- round(colSums(expandcolumns(fem),na.rm=TRUE),1)
           sampm <- round(colSums(expandcolumns(mal),na.rm=TRUE),1)
-          sampsize <- cbind(sampf,sampm) 
-          colnames(sampsize) <- c("female","male")
+          tot <- sampf+sampm 
+          sampsize <- cbind(sampf,sampm,tot,sampf/tot,sampm/tot) 
+          colnames(sampsize) <- c("female","male","total","P-female","P-male")
+          numrow <- nrow(sampsize)
+          sampsize <- rbind(sampsize,apply(sampsize,2,mean,na.rm=TRUE))
+          rownames(sampsize)[numrow+1] <- "mean"
+          yrs <- as.numeric(rownames(sampsize)[1:numrow])
+          filen <- "" 
+          if (!console) { 
+            fileout <- paste0(addtitle,analysis,'_sex-ratio-or-ages.png') 
+            filen <- pathtopath(plotdir,fileout) 
+          }
+          plotprep(width=8,height=4.5,newdev=TRUE,filename=filen,verbose=FALSE) 
+          parset(plots=c(1,1),cex=1.0,margin=c(0.3,0.45,0.1,0.1)) 
+          maxy <- getmax(sampsize[,c("P-female","P-male")])
+          plot(yrs,sampsize[1:numrow,"P-female"],type='l',lwd=2,col=1,xlab="", 
+               ylab="Sex-ratio of ageing data",ylim=c(0,maxy),yaxs='i',
+               panel.first=grid) 
+          lines(yrs,sampsize[1:numrow,"P-male"],lwd=2,col=2)
+          abline(h=0.5,lwd=1,col=1,lty=3)
+          legend('bottomleft',legend=c("females","males"),col=c(1:2),lwd=3,bty='n',
+                 cex=1.2) 
           if (!console) {
+            dev.off() 
+            addplot(filen=filen,rundir=plotdir,category="agecomp",
+                    caption="Sex-ratio of ageing data, expected ratio = 0.5") 
             filename <- paste0(addtitle,"_Age_Sample_sizes_by_Sex_by_year.csv")
             addtable(sampsize,filen=filename,rundir=plotdir,category="agecomp",
                      caption="Age sample sizes by sex by year.") 
