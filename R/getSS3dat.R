@@ -436,16 +436,18 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
                ylab="Sex-ratio of ageing data",ylim=c(0,maxy),yaxs='i',
                panel.first=grid) 
           lines(yrs,sampsize[1:numrow,"P-male"],lwd=2,col=2)
-          abline(h=0.5,lwd=1,col=1,lty=3)
+          abline(h=c(0.5,sampsize["mean","P-female"]),lwd=c(2,2),col=c(1,2),lty=3)
           legend('bottomleft',legend=c("females","males"),col=c(1:2),lwd=3,bty='n',
                  cex=1.2) 
           if (!console) {
             dev.off() 
+            label <- paste0("Sex-ratio of ageing data, expected ratio = 0.5",
+                            " red-dotted line = mean female proportion.")
             addplot(filen=filen,rundir=plotdir,category="agecomp",
                     caption="Sex-ratio of ageing data, expected ratio = 0.5") 
             filename <- paste0(addtitle,"_Age_Sample_sizes_by_Sex_by_year.csv")
             addtable(sampsize,filen=filename,rundir=plotdir,category="agecomp",
-                     caption="Age sample sizes by sex by year.") 
+                     caption=label) 
           }
         }
       }
@@ -456,7 +458,7 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
               datadir=NULL,
               width=500,
               openfile=TRUE,
-              runnotes=paste0(paste0(addtitle,collapse="__")," Observed Data"),
+              runnotes=paste0(addtitle,"_Observed Data"),
               verbose=verbose,
               packagename="rforSS3",
               htmlname=paste0(analysis,"_DataReview"))
