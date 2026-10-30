@@ -64,7 +64,7 @@ getSS3datasets <- function(store,analysis,ss3datafile=NULL,verbose=TRUE) {
                                   dimnames=list(ceyrs,columns)))
   obscpue[,"year"] <- ceyrs
   for (i in 1:cefleets) { # i = 1
-    pickfleet <- which(cpue[,"index"] == i)
+    pickfleet <- which(cpue[,"index"] == fleetnum[i])
     if (length(pickfleet) > 0) {
       flce <- cpue[pickfleet,]
       pickrow <- match(flce[,"year"],ceyrs)
@@ -119,7 +119,7 @@ plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) {
     filen <- pathtopath(rundir,fileout)
   }
   hgt <- nfleet*3.5
-  plotprep(width=10,height=hgt,newdev=FALSE,filename=filen,verbose=FALSE)
+  plotprep(width=10,height=hgt,newdev=TRUE,filename=filen,verbose=FALSE)
   parset(plots=c(nfleet,1),margin=c(0.25,0.4,0.05,0.1))
   for (fl in 1:nfleet) { # fl = 1
     ce <- cpue[,(fl+1)]
@@ -167,6 +167,7 @@ plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) {
 #'     the mean of each time-series, each time-series is comparable
 #' @param lenrowhgt the heigh of each row when plotting length- and 
 #'     age-composition.
+#' @param test should test stetaements through code run, default = FALSE
 #'
 #' @returns nothing but it can generate an internal website with multiple plots
 #'     as png files, and tables as csv files.
@@ -176,9 +177,11 @@ plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) {
 #' print("wait on data sets")
 #' # minimum syntax SS3inputdata(store=store,analysis=analysis,plotdir=plotdir,
 #' #                             lenrowhgt=3)
+#' #  store=store;analysis=analysis;plotdir=plotdir;lenrowhgt=3; addtitle="GAR_SG"
+#' #  console=TRUE;verbose=TRUE;subsetC=2008:2025; test=TRUE
 SS3inputdata <- function(store,analysis,plotdir,addtitle="",
                          console=FALSE,verbose=TRUE,subsetC=NULL,
-                         lenrowhgt=3) {
+                         lenrowhgt=3, test=FALSE) {
   dirExists(plotdir)
   setuphtml(plotdir)
   datasets <- getSS3datasets(store=store,analysis=analysis,verbose=TRUE)
@@ -261,14 +264,16 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
                caption="CPUE observations into SS3.") 
     }
   # length tab-----------------------
+    if (verbose) cat("Generating lencomp tab \n")  
     lencomp <- datasets$lencomp
     if (!is.null(lencomp)) {  
       lbins <- struct$lenbins
       nlbin <- length(lbins)
       fleets <- sort(unique(lencomp[,"fleet"]))
       nfleet <- length(fleets)
-      for (fl in 1 : nfleet) { # fl = 1
+      for (fl in 1 : nfleet) { # fl = 2
         flname <- fleetnames[fleets[fl]]
+        if (test) print(flname)
         flnum <- fleets[fl]
         gender <- c("f","m")
         flnames <- paste0(gender[1],lbins)
@@ -354,15 +359,17 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
     } 
   
   # age tab-------------------------
+    if (verbose) cat("Generating agecomp tab \n")
     agecomp <- datasets$agecomp
     if (!is.null(agecomp)) {  
       agebins <- struct$agebins
       nages <- length(agebins)
-      fleets <- sort(unique(agecomp[,"fleet"]))
-      nfleet <- length(fleets)
-      pickP <- which(agecomp[,"year"] > 0)
+      pickP <- which((agecomp[,"year"] > 0) & (agecomp[,"Lbin_lo"] < 0))
       agecomp <- agecomp[pickP,]
-      for (fl in 1 : nfleet) { # fl = 1
+      agecomp[,"fleet"] <- abs(agecomp[,"fleet"])
+      fleets <- sort(abs(unique(agecomp[,"fleet"])))
+      nfleet <- length(fleets)
+      for (fl in 1 : nfleet) { # fl = 2
         flname <- fleetnames[fleets[fl]]
         flnum <- fleets[fl]
         gender <- c("f","m")
@@ -391,9 +398,12 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
           if (!console) {
             addplot(filen=details$filename,rundir=plotdir,category="agecomp",
                     caption=details$caption)
-            filename <- paste0(addtitle,"_Female_Age_comp_obs_data.csv")
+            filename <- paste0(addtitle,
+                               "_Female_Age_comp_obs_data_",flname,".csv")
+            label <- paste0(addtitle," Female age composition data input to ",
+                            "SS3 ",flname)
             addtable(fem,filen=filename,rundir=plotdir,category="agecomp",
-                     caption="Female age composition data input to SS3.") 
+                     caption=label) 
           }
         } else {
           plotnull(msg="No female age data")
@@ -407,9 +417,13 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
           if (!console) {
             addplot(filen=details$filename,rundir=plotdir,category="agecomp",
                     caption=details$caption)          
-            filename <- paste0(addtitle,"_Male_Age_comp_obs_data.csv")
+            filename <- paste0(addtitle,
+                               "_Male_Age_comp_obs_data_",flname,".csv")
+            label <- paste0(addtitle," Male age composition data input to ",
+                            "SS3 ",flname)
+            
             addtable(mal,filen=filename,rundir=plotdir,category="agecomp",
-                     caption="Male age composition data input to SS3.") 
+                     caption=label) 
           }
         } else {
           plotnull(msg="No male age data")
@@ -426,26 +440,27 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
           yrs <- as.numeric(rownames(sampsize)[1:numrow])
           filen <- "" 
           if (!console) { 
-            fileout <- paste0(addtitle,analysis,'_sex-ratio-or-ages.png') 
+            fileout <- paste0(addtitle,analysis,flname,'_sex-ratio-or-ages.png') 
             filen <- pathtopath(plotdir,fileout) 
           }
           plotprep(width=8,height=4.5,newdev=TRUE,filename=filen,verbose=FALSE) 
           parset(plots=c(1,1),cex=1.0,margin=c(0.3,0.45,0.1,0.1)) 
           maxy <- getmax(sampsize[,c("P-female","P-male")])
-          plot(yrs,sampsize[1:numrow,"P-female"],type='l',lwd=2,col=1,xlab="", 
-               ylab="Sex-ratio of ageing data",ylim=c(0,maxy),yaxs='i',
-               panel.first=grid) 
-          lines(yrs,sampsize[1:numrow,"P-male"],lwd=2,col=2)
-          abline(h=c(0.5,sampsize["mean","P-female"]),lwd=c(2,2),col=c(1,2),lty=3)
-          legend('bottomleft',legend=c("females","males"),col=c(1:2),lwd=3,bty='n',
+          plot(yrs,sampsize[1:numrow,"P-female"],type='l',lwd=2,col=2,xlab="", 
+               ylab=paste0(flname," Sex-ratio of ageing data ",addtitle),
+               ylim=c(0,maxy),yaxs='i',panel.first=grid) 
+          lines(yrs,sampsize[1:numrow,"P-male"],lwd=2,col=4)
+          abline(h=c(0.5,sampsize["mean","P-female"]),lwd=c(3,3),col=c(1,2),lty=2)
+          legend('bottomleft',legend=c("females","males"),col=c(2,4),lwd=3,bty='n',
                  cex=1.2) 
           if (!console) {
             dev.off() 
-            label <- paste0("Sex-ratio of ageing data, expected ratio = 0.5",
-                            " red-dotted line = mean female proportion.")
-            addplot(filen=filen,rundir=plotdir,category="agecomp",
-                    caption="Sex-ratio of ageing data, expected ratio = 0.5") 
-            filename <- paste0(addtitle,"_Age_Sample_sizes_by_Sex_by_year.csv")
+            label <- paste0(flname," Sex-ratio of ageing data, expected ratio ",
+                            "= 0.5 red-dotted line = mean female proportion. ",
+                            addtitle)
+            addplot(filen=filen,rundir=plotdir,category="agecomp",caption=label)
+            label <- paste0(addtitle,"_Age_Sample_sizes_by_Sex_by_year_",flname)
+            filename <- paste0(label,".csv") 
             addtable(sampsize,filen=filename,rundir=plotdir,category="agecomp",
                      caption=label) 
           }

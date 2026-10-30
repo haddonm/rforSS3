@@ -12,7 +12,8 @@ SS3inputdata(
   console = FALSE,
   verbose = TRUE,
   subsetC = NULL,
-  lenrowhgt = 3
+  lenrowhgt = 3,
+  test = FALSE
 )
 }
 \arguments{
@@ -39,6 +40,8 @@ the mean of each time-series, each time-series is comparable}
 
 \item{lenrowhgt}{the heigh of each row when plotting length- and
 age-composition.}
+
+\item{test}{should test stetaements through code run, default = FALSE}
 }
 \value{
 nothing but it can generate an internal website with multiple plots
@@ -56,4 +59,6 @@ to work with.
 print("wait on data sets")
 # minimum syntax SS3inputdata(store=store,analysis=analysis,plotdir=plotdir,
 #                             lenrowhgt=3)
+#  store=store;analysis=analysis;plotdir=plotdir;lenrowhgt=3; addtitle="GAR_SG"
+#  console=TRUE;verbose=TRUE;subsetC=2008:2025; test=TRUE
 }
