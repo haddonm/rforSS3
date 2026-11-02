@@ -4,7 +4,7 @@
 \alias{plotss3catches}
 \title{plotss3catches generates a plot of catch by fleet and of total catch}
 \usage{
-plotss3catches(catches, extradir, analysis, console = TRUE)
+plotss3catches(catches, extradir, analysis, mass = TRUE, console = TRUE)
 }
 \arguments{
 \item{catches}{an output from getdatasets}
@@ -13,6 +13,8 @@ plotss3catches(catches, extradir, analysis, console = TRUE)
 
 \item{analysis}{the name of the analysis or scenario whose catches are being
 plotted}
+
+\item{mass}{are the catches as mass or numbers, deffault = TRUE}
 
 \item{console}{should the plot go to the console or be saved as a png file
 to the extradir}

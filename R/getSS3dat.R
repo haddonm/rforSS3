@@ -27,7 +27,9 @@ getSS3datasets <- function(store,analysis,ss3datafile=NULL,verbose=TRUE) {
   dat <- SS_readdat_3.30(file=datfile,verbose=verbose)
   fleetnames <- dat$fleetnames
   nfleet <- length(fleetnames)
-  catch <- dat$catch  
+  fltnums <- 1:nfleet
+  catch <- dat$catch 
+  catchunits <- dat$units_of_catch
   cpue <- dat$CPUE
   agecomp <- dat$agecomp
   lencomp <- dat$lencomp
@@ -45,16 +47,38 @@ getSS3datasets <- function(store,analysis,ss3datafile=NULL,verbose=TRUE) {
   catch <- catch[pickpos,]
   catchyrs <- sort(unique(catch[,"year"]))
   catnyr <- length(catchyrs)
-  catches <- as.data.frame(matrix(0,nrow=catnyr,ncol=nfleet,
-                                  dimnames=list(catchyrs,fleetnames)))
-  for (i in 1:nfleet) { # i = 1
+  pickB <- which(catchunits == 1)
+  nfleetB <- length(pickB)
+  catchB <- as.data.frame(matrix(0,nrow=catnyr,ncol=nfleetB,
+                                  dimnames=list(catchyrs,fleetnames[pickB])))
+  count <- 0
+  for (i in fltnums[pickB]) { # i = 1
+    count <- count + 1
     pickfleet <- which(catch[,"fleet"] == i)
     if (length(pickfleet) > 0) {
       flcatch <- catch[pickfleet,]
       pickrow <- match(flcatch[,"year"],catchyrs)
-      catches[pickrow,i] <- flcatch[,"catch"]
+      catchB[pickrow,count] <- flcatch[,"catch"]
     }
   }
+  catchN <- NULL
+  if (nfleetB < nfleet) {
+    pickN <- which(catchunits == 2)
+    nfleetN <- length(pickN)
+    catchN <- as.data.frame(matrix(0,nrow=catnyr,ncol=nfleetN,
+                                   dimnames=list(catchyrs,fleetnames[pickN])))
+    count <- 0
+    for (i in fltnums[pickN]) { # i = 1
+      count <- count + 1
+      pickfleet <- which(catch[,"fleet"] == i)
+      if (length(pickfleet) > 0) {
+        flcatch <- catch[pickfleet,]
+        pickrow <- match(flcatch[,"year"],catchyrs)
+        catchN[pickrow,count] <- flcatch[,"catch"]
+      }
+    }  
+  }
+  #CPUE--------------
   fleetnum <- sort(unique(cpue[,"index"]))
   cefleets <- length(fleetnum)
   ceyrs <- sort(unique(cpue[,"year"]))
@@ -80,9 +104,44 @@ getSS3datasets <- function(store,analysis,ss3datafile=NULL,verbose=TRUE) {
                  lenbins=lenbins,
                  nages=nages,
                  agebins=agebins)  
-  return(invisible(list(catches=catches,cpue=obscpue,agecomp=agecomp,
-                        lencomp=lencomp,struct=struct)))
+  return(invisible(list(catchB=catchB,catchN=catchN,cpue=obscpue,
+                        agecomp=agecomp,lencomp=lencomp,struct=struct)))
 } # end of getSS3datasets
+
+#' @title getwaa uses Report.sso file to extract the predicted weight-at-age
+#' 
+#' @description when working with recreational catches they are often reported
+#'     as numbers caught in thousands. To make these comparable to commercial
+#'     catches one needs to translate the numbers to mass. The mean 
+#'     weight-at-age is calculated and reported in the Report.sso file. This 
+#'     function extracts it. If no report.sso file is found the function 
+#'     issues a note to the console to that effect.
+#'
+#' @param destination the full path to the SS3 scenario being examined. In my
+#'    usage this is the store and analysis combined.
+#'
+#' @returns a matrix of mean-weight-at-age against age
+#' @export
+#'
+#' @examples
+#' # syntax waa <- getwaa(destination)   or
+#' # syntax waa <- getwaa(pathtopath(store,analysis))
+getwaa <- function(destination) {
+  files <- dir(destination)
+  pick <- match("Report.sso",files)
+  waa <- NULL
+  if (!is.na(pick)) {
+    report <- readLines(pathtopath(destination,"Report.sso"))
+    loc <- tail(grep("MEAN_BODY_WT",report,fixed=TRUE),1)
+    tmp <- removeEmpty(unlist(strsplit(report[(loc+2)]," ")))
+    ages <- as.numeric(tmp[4:length(tmp)])
+    tmp <- as.numeric(removeEmpty(unlist(strsplit(report[(loc+10)]," "))))
+    aaw <- tmp[4:length(tmp)]
+    waa <- cbind(ages,aaw)
+    rownames(waa) <- ages
+  } else cat(paste0("Report.sso not found in ",destination," \n"))
+  return(waa)
+} # end of getwaa
 
 plotscaledcatches <- function(catches,plotdir,addtitle="",console=TRUE,
                               addline=TRUE) {
@@ -167,7 +226,15 @@ plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) {
 #'     the mean of each time-series, each time-series is comparable
 #' @param lenrowhgt the heigh of each row when plotting length- and 
 #'     age-composition.
-#' @param test should test stetaements through code run, default = FALSE
+#' @param test should test statements through code run, default = FALSE
+#' @param minyL the minimum length to plot for all fleets for more details in
+#'     plot. Default = 0, meaning use all categories
+#' @param maxyL the maximum length to plot for all fleets for more details in
+#'     plot. Default = 0, meaning use all categories
+#' @param minyA the minimum age to plot for all fleets for more details in
+#'     plot. Default = 0, meaning use all categories
+#' @param maxyA the maximum length to plot for all fleets for more details in
+#'     plot. Default = 0, meaning use all categories
 #'
 #' @returns nothing but it can generate an internal website with multiple plots
 #'     as png files, and tables as csv files.
@@ -177,11 +244,12 @@ plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) {
 #' print("wait on data sets")
 #' # minimum syntax SS3inputdata(store=store,analysis=analysis,plotdir=plotdir,
 #' #                             lenrowhgt=3)
-#' #  store=store;analysis=analysis;plotdir=plotdir;lenrowhgt=3; addtitle="GAR_SG"
-#' #  console=TRUE;verbose=TRUE;subsetC=2008:2025; test=TRUE
+#' #  store=store;analysis=analysis;plotdir=plotdir;lenrowhgt=3; addtitle="KGW_WEP"
+#' #  console=TRUE;verbose=TRUE;subsetC=2007:2025; test=FALSE
 SS3inputdata <- function(store,analysis,plotdir,addtitle="",
                          console=FALSE,verbose=TRUE,subsetC=NULL,
-                         lenrowhgt=3, test=FALSE) {
+                         lenrowhgt=3, test=FALSE,minyL=0,maxyL=0,
+                         minyA=0,maxyA=0) {
   dirExists(plotdir)
   setuphtml(plotdir)
   datasets <- getSS3datasets(store=store,analysis=analysis,verbose=TRUE)
@@ -190,26 +258,40 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
   fleetnames <- struct$fleetnames
   # catch tab------------------
   if (verbose) cat("Generating observed catches tab \n")
-  catches <- datasets$catches
-  filename <- plotss3catches(catches,extradir=plotdir,analysis=addtitle,
+  catchB <- datasets$catchB
+  filename <- plotss3catches(catchB,extradir=plotdir,analysis=addtitle,
                              console=console)
   if (!console) {
     addplot(filen=filename,rundir=plotdir,category="catch",
           caption=paste0("Reported catches by Year and fleet.",
                      " Recreational catches are interpolated between surveys",
                          " The red line in lower plot is a loess curve"))    
-    filename <- paste0(analysis,"_Catch-by-Fleet.csv")
-    allcatch <- cbind(catches,total=rowSums(catches,na.rm=TRUE))
+    filename <- paste0(analysis,"_Catch_tonnes-by-Fleet.csv")
+    allcatch <- cbind(catchB,total=rowSums(catchB,na.rm=TRUE))
     addtable(allcatch,filen=filename,rundir=plotdir,category="catch",
-             caption=paste0("Reported Catch by Fleet. Recreational catches ",
-                            "are interpolated netween surveys.")) 
+             caption=paste0("Reported Catch by Fleet (t).")) 
   }
-  
+  catchN <- datasets$catchN
+  if (!is.null(catchN)) {
+    filename <- plotss3catches(catchN,extradir=plotdir,analysis=addtitle,
+                               mass=FALSE,console=console)
+    if (!console) {
+      addplot(filen=filename,rundir=plotdir,category="catch",
+              caption=paste0("Reported catches by Year and fleet.",
+                      " Recreational catches are interpolated between surveys",
+                       " The red line in lower plot is a loess curve"))    
+      filename <- paste0(analysis,"_Catch_numbers-by-Fleet.csv")
+      allcatch <- cbind(catchN,total=rowSums(catchN,na.rm=TRUE))
+      addtable(allcatch,filen=filename,rundir=plotdir,category="catch",
+               caption=paste0("Catch by Fleet as Numbers."))     
+    }
+  }
   titleadd <- addtitle
+  catches <- cbind(catchB,catchN)
   scaledcatches <- catches
   maxCyrs <- struct$maxcatchyrs
   nyrs <- length(maxCyrs)
-  pickF <- apply(catches,2,countgtzero)
+  pickF <- apply(scaledcatches,2,countgtzero)
   flts <- which(pickF == nyrs)
   for (flt in flts) {
     scaledcatches[,flt] <- catches[,flt]/mean(catches[,flt])
@@ -271,7 +353,7 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
       nlbin <- length(lbins)
       fleets <- sort(unique(lencomp[,"fleet"]))
       nfleet <- length(fleets)
-      for (fl in 1 : nfleet) { # fl = 2
+      for (fl in 1 : nfleet) { # fl = 1
         flname <- fleetnames[fleets[fl]]
         if (test) print(flname)
         flnum <- fleets[fl]
@@ -294,7 +376,8 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
             details <- plotcompdata(compdata=expandcolumns(fem),
                                   analysis=paste0(analysis,"_Female_",flname),
                                     ylabel="Counts",console=console,
-                                    rowhgt=lenrowhgt,outdir=plotdir)
+                                    rowhgt=lenrowhgt,outdir=plotdir,
+                                    miny=minyL,maxy=maxyL)
             if (!console) {
               addplot(filen=details$filename,rundir=plotdir,category="LenComp",
                       caption=details$caption)
@@ -309,7 +392,8 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
             details <- plotcompdata(compdata=expandcolumns(mal),
                                     analysis=paste0(analysis,"_Male_",flname),
                                     ylabel="Counts",console=console,
-                                    rowhgt=lenrowhgt,outdir=plotdir)
+                                    rowhgt=lenrowhgt,outdir=plotdir,
+                                    miny=minyL,maxy=maxyL)
             if (!console) {
               addplot(filen=details$filename,rundir=plotdir,category="LenComp",
                       caption=details$caption)          
@@ -336,7 +420,8 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
             details <- plotcompdata(compdata=expandcolumns(mixed),
                                     analysis=paste0(addtitle,"_Mixed_",flname), 
                                     ylabel="Counts",console=console,
-                                    rowhgt=lenrowhgt,outdir=plotdir)
+                                    rowhgt=lenrowhgt,outdir=plotdir,
+                                    miny=minyL,maxy=maxyL)
             if (!console) {
               addplot(filen=details$filename,rundir=plotdir,category="LenComp",
                     caption=details$caption) 
@@ -394,7 +479,8 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
           details <- plotcompdata(compdata=expandcolumns(fem),
                                   analysis=paste0(analysis,"_Female_Age_",flname),
                                   ylabel="Counts",console=console,
-                                  rowhgt=lenrowhgt,outdir=plotdir)
+                                  rowhgt=lenrowhgt,outdir=plotdir,
+                                  miny=minyA,maxy=maxyA)
           if (!console) {
             addplot(filen=details$filename,rundir=plotdir,category="agecomp",
                     caption=details$caption)
@@ -413,7 +499,8 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
           details <- plotcompdata(compdata=expandcolumns(mal),
                                   analysis=paste0(analysis,"_Male_Age_",flname),
                                   ylabel="Counts",console=console,
-                                  rowhgt=lenrowhgt,outdir=plotdir)
+                                  rowhgt=lenrowhgt,outdir=plotdir,
+                                  miny=minyA,maxy=maxyA)
           if (!console) {
             addplot(filen=details$filename,rundir=plotdir,category="agecomp",
                     caption=details$caption)          
@@ -450,13 +537,15 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
                ylab=paste0(flname," Sex-ratio of ageing data ",addtitle),
                ylim=c(0,maxy),yaxs='i',panel.first=grid) 
           lines(yrs,sampsize[1:numrow,"P-male"],lwd=2,col=4)
-          abline(h=c(0.5,sampsize["mean","P-female"]),lwd=c(3,3),col=c(1,2),lty=2)
+          abline(h=c(0.5,sampsize["mean","P-female"],sampsize["mean","P-male"]),
+                 lwd=c(3,3,3),col=c(1,2,4),lty=2)
           legend('bottomleft',legend=c("females","males"),col=c(2,4),lwd=3,bty='n',
                  cex=1.2) 
           if (!console) {
             dev.off() 
             label <- paste0(flname," Sex-ratio of ageing data, expected ratio ",
-                            "= 0.5 red-dotted line = mean female proportion. ",
+                            "= 0.5 red-dotted line = mean female proportion, ",
+                            "blue dotted line = mean male proportion.",
                             addtitle)
             addplot(filen=filen,rundir=plotdir,category="agecomp",caption=label)
             label <- paste0(addtitle,"_Age_Sample_sizes_by_Sex_by_year_",flname)

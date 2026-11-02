@@ -1683,6 +1683,7 @@ plotagelenkey <- function(outcomp,rundir="",plotscenes=NULL,pch=1,pchcex=1.25,
 #' @param extradir the full path to the directory fof extra plots and tables
 #' @param analysis the name of the analysis or scenario whose catches are being 
 #'    plotted
+#' @param mass are the catches as mass or numbers, deffault = TRUE
 #' @param console should the plot go to the console or be saved as a png file
 #'     to the extradir
 #'
@@ -1692,28 +1693,34 @@ plotagelenkey <- function(outcomp,rundir="",plotscenes=NULL,pch=1,pchcex=1.25,
 #' @examples
 #' # typical syntax
 #' # plotss3catches(catches=catches, extradir=extradir,console=FALSE)
-plotss3catches <- function(catches,extradir,analysis,console=TRUE) {
+plotss3catches <- function(catches,extradir,analysis,mass=TRUE,console=TRUE) {
   #  catches=catches;extradir=extradir; console=TRUE
+  if (mass) { 
+    addL <- "_t_"
+  } else {
+    addL <- "_numbers_"
+  }
   fleetnames <- colnames(catches)
   nfleet <- length(fleetnames)
   yrs <- as.numeric(rownames(catches))
   nyr <- length(yrs)
   totC <- rowSums(catches,na.rm=TRUE)
   if (console) { filen="" } else {
-    fileout <- paste0(analysis,"_Reported_catches_for_",nfleet,"_fleets.png")
+    fileout <- paste0(analysis,"_Reported_catches",addL,nfleet,"_fleets.png")
     filen <- pathtopath(extradir,fileout)
   }
   plotprep(width=7,height=6,newdev=FALSE,filename=filen,verbose=FALSE)
   parset(plots=c(2,1),cex=1.0,margin=c(0.3,0.45,0.1,0.1))
   maxy <- getmax(catches)
   plot(yrs,catches[,1],type="l",lwd=2,col=1,xlab="",
-       ylab="Catches (t) by Fleet",ylim=c(0,maxy),yaxs="i",panel.first=grid)
+       ylab=paste0("Catches",addL,"by Fleet"),ylim=c(0,maxy),yaxs="i",
+       panel.first=grid)
   if (nfleet > 1) for (fl in 2:nfleet) lines(yrs,catches[,fl],lwd=2,col=fl)
   legend("topright",legend=fleetnames,col=c(1:nfleet),lwd=3,bty="n",cex=1.0)
   maxy2 <- getmax(totC)
   curve <- loess(totC ~ c(1:nyr))
   plot(yrs,totC,type="l",lwd=2,col=1,xlab="",ylim=c(0,maxy2),yaxs="i",
-       ylab="Total Catches (t) Across Fleets",panel.first=grid())
+       ylab=paste0("Total Catches",addL,"across Fleets"),panel.first=grid())
   lines(yrs,curve$fitted,lwd=2,col=2)
   if (!console) dev.off()
   return(invisible(filen))
