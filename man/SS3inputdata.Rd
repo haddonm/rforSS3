@@ -75,6 +75,6 @@ to work with.
 print("wait on data sets")
 # minimum syntax SS3inputdata(store=store,analysis=analysis,plotdir=plotdir,
 #                             lenrowhgt=3)
-#  store=store;analysis=analysis;plotdir=plotdir;lenrowhgt=3; addtitle="KGW_WEP"
-#  console=TRUE;verbose=TRUE;subsetC=2007:2025; test=FALSE
+#  store=store;analysis=analysis;plotdir=plotdir;lenrowhgt=3; addtitle="KGW_GSV"
+#  console=TRUE;verbose=TRUE;subsetC=2007:2024; test=FALSE; minyL=25;maxyL=45;maxyA=10
 }

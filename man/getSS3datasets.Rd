@@ -4,16 +4,13 @@
 \alias{getSS3datasets}
 \title{getSS3datasets uses SS_readdat_3.30 to extract data sets used by SS3}
 \usage{
-getSS3datasets(store, analysis, ss3datafile = NULL, verbose = TRUE)
+getSS3datasets(store, analysis, verbose = TRUE)
 }
 \arguments{
 \item{store}{the full path to the directory within which the analysis
 sub-directory is held}
 
 \item{analysis}{the name of the SS3 model being explored}
-
-\item{ss3datafile}{if not using store and analysis to generate path to data-
-file, then enter the full path here, toehrwise leave as NULL}
 
 \item{verbose}{should progress updates be sent ot the console, default=TRUE}
 }
@@ -24,7 +21,9 @@ the lencomp, and structural details in struct
 \description{
 getSS3datasets only extracts the catches, the index or CPUE,
 any length-composition data, any age-composition data, and some
-structural details, It puts all of these inside a list, which is returned
+structural details, It puts all of these inside a list, which is
+returned. This function requires that the combined store and analysis,
+the destination, holds the dat file and the plotreport.
 }
 \examples{
 # syntax datasets <- getSS3datasets(store,analysis,verbose=TRUE)

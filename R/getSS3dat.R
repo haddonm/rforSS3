@@ -5,13 +5,13 @@
 #' 
 #' @description getSS3datasets only extracts the catches, the index or CPUE, 
 #'     any length-composition data, any age-composition data, and some 
-#'     structural details, It puts all of these inside a list, which is returned
+#'     structural details, It puts all of these inside a list, which is 
+#'     returned. This function requires that the combined store and analysis, 
+#'     the destination, holds the dat file and the plotreport.
 #'
 #' @param analysis the name of the SS3 model being explored
 #' @param store the full path to the directory within which the analysis 
 #'     sub-directory is held 
-#' @param ss3datafile if not using store and analysis to generate path to data-
-#'     file, then enter the full path here, toehrwise leave as NULL
 #' @param verbose should progress updates be sent ot the console, default=TRUE
 #'
 #' @returns invisibly a list containing the catches, the cpue, the agecomp,
@@ -20,16 +20,33 @@
 #'
 #' @examples
 #' # syntax datasets <- getSS3datasets(store,analysis,verbose=TRUE)
-getSS3datasets <- function(store,analysis,ss3datafile=NULL,verbose=TRUE) {
-# store=store;analysis=analysis;verbose=TRUE
+getSS3datasets <- function(store,analysis,verbose=TRUE) {
+# store=store;analysis=analysis;verbose=TRUE;console=TRUE
   destination <- pathtopath(store,analysis)
   datfile <- pathtopath(destination,paste0(analysis,".dat"))
   dat <- SS_readdat_3.30(file=datfile,verbose=verbose)
   fleetnames <- dat$fleetnames
   nfleet <- length(fleetnames)
   fltnums <- 1:nfleet
-  catch <- dat$catch 
-  catchunits <- dat$units_of_catch
+  pltf <- paste0("plotreport_",analysis,".RData")
+  plotreport <- NULL
+  load(pathtopath(destination,pltf))
+  startyr <- plotreport$startyr
+  endyr <- plotreport$endyr
+  yrs <- startyr:endyr
+  catch <- plotreport$catch
+  Cyrs <- sort(unique(catch[,"Yr"]))
+  catchyrs <- Cyrs[match(yrs,Cyrs)]
+  nyrs <- length(catchyrs)
+  cfltnum <- sort(unique(catch[,"Fleet"]))
+  cfltname <- fleetnames[cfltnum]
+  ncfleet <- length(cfltnum)
+  obsC <- matrix(0,nrow=nyrs,ncol=ncfleet,dimnames=list(yrs,cfltname))
+  for (i in cfltnum) { # i = 1
+    pickC <- which(catch[,"Fleet"] == i)
+    fltC <- catch[pickC[2:length(pickC)],]
+    obsC[,i] <- fltC[,"sel_bio"]
+  } # includes mass estiamtes for recreational catches
   cpue <- dat$CPUE
   agecomp <- dat$agecomp
   lencomp <- dat$lencomp
@@ -42,41 +59,6 @@ getSS3datasets <- function(store,analysis,ss3datafile=NULL,verbose=TRUE) {
   if (!is.null(agecomp)) {
     agebins <- dat$agebin_vector
     nages <- length(agebins)
-  }
-  pickpos <- which(catch[,"year"] > 0)
-  catch <- catch[pickpos,]
-  catchyrs <- sort(unique(catch[,"year"]))
-  catnyr <- length(catchyrs)
-  pickB <- which(catchunits == 1)
-  nfleetB <- length(pickB)
-  catchB <- as.data.frame(matrix(0,nrow=catnyr,ncol=nfleetB,
-                                  dimnames=list(catchyrs,fleetnames[pickB])))
-  count <- 0
-  for (i in fltnums[pickB]) { # i = 1
-    count <- count + 1
-    pickfleet <- which(catch[,"fleet"] == i)
-    if (length(pickfleet) > 0) {
-      flcatch <- catch[pickfleet,]
-      pickrow <- match(flcatch[,"year"],catchyrs)
-      catchB[pickrow,count] <- flcatch[,"catch"]
-    }
-  }
-  catchN <- NULL
-  if (nfleetB < nfleet) {
-    pickN <- which(catchunits == 2)
-    nfleetN <- length(pickN)
-    catchN <- as.data.frame(matrix(0,nrow=catnyr,ncol=nfleetN,
-                                   dimnames=list(catchyrs,fleetnames[pickN])))
-    count <- 0
-    for (i in fltnums[pickN]) { # i = 1
-      count <- count + 1
-      pickfleet <- which(catch[,"fleet"] == i)
-      if (length(pickfleet) > 0) {
-        flcatch <- catch[pickfleet,]
-        pickrow <- match(flcatch[,"year"],catchyrs)
-        catchN[pickrow,count] <- flcatch[,"catch"]
-      }
-    }  
   }
   #CPUE--------------
   fleetnum <- sort(unique(cpue[,"index"]))
@@ -104,8 +86,8 @@ getSS3datasets <- function(store,analysis,ss3datafile=NULL,verbose=TRUE) {
                  lenbins=lenbins,
                  nages=nages,
                  agebins=agebins)  
-  return(invisible(list(catchB=catchB,catchN=catchN,cpue=obscpue,
-                        agecomp=agecomp,lencomp=lencomp,struct=struct)))
+  return(invisible(list(catchB=obsC,cpue=obscpue,agecomp=agecomp,
+                        lencomp=lencomp,struct=struct)))
 } # end of getSS3datasets
 
 #' @title getwaa uses Report.sso file to extract the predicted weight-at-age
@@ -167,25 +149,27 @@ plotscaledcatches <- function(catches,plotdir,addtitle="",console=TRUE,
   return(invisible(filen))
 } # end of plotscaledcatches
 
-plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) { 
+plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE,
+                        defplot=TRUE) { 
   yrs <- cpue[,"year"]
   nyrs <- length(yrs)
   numcol <- ncol(cpue)
   fleets <- colnames(cpue)[2:numcol]
   nfleet <- length(fleets)
-  if (console) { filen="" } else {
+  filen <- ""
+  hgt <- nfleet*3.5  
+  if (defplot) { 
     fileout <- paste0(addtitle,"_CPUE_for_allfleets.png")
     filen <- pathtopath(rundir,fileout)
+    plotprep(width=10,height=hgt,newdev=TRUE,filename=filen,verbose=FALSE)
+    parset(plots=c(nfleet,1),margin=c(0.25,0.4,0.05,0.1))
   }
-  hgt <- nfleet*3.5
-  plotprep(width=10,height=hgt,newdev=TRUE,filename=filen,verbose=FALSE)
-  parset(plots=c(nfleet,1),margin=c(0.25,0.4,0.05,0.1))
   for (fl in 1:nfleet) { # fl = 1
     ce <- cpue[,(fl+1)]
     ce[ce == 0] <- NA
     maxy <- getmax(ce)  
-    label <- paste0(addtitle,fleets[fl])
-    plot(yrs,ce,type="l",lwd=2,xlab="",ylab=label,
+    label <- paste0(addtitle,"_",fleets[fl],"_CPUE")
+    plot(yrs,ce,type="l",lwd=2,xlab="",ylab=label,yaxs="i",
          ylim=c(0,maxy),xlim=c(yrs[1],yrs[nyrs]),panel.first=grid())
     points(yrs,ce,pch=16,cex=1.0,col=2)
     if (smooth) {
@@ -196,7 +180,7 @@ plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) {
       legend("topright",paste0("rmse = ",rmse),lwd=3,col=2,cex=1.25,bty="n")
     }
   }
-  if (!console) dev.off()
+  if ((defplot) & (!console)) dev.off()
   return(invisible(filen))
 } # end of plotfltcpue
 
@@ -244,8 +228,8 @@ plotfltcpue <- function(cpue,rundir="",addtitle="",smooth=TRUE,console=TRUE) {
 #' print("wait on data sets")
 #' # minimum syntax SS3inputdata(store=store,analysis=analysis,plotdir=plotdir,
 #' #                             lenrowhgt=3)
-#' #  store=store;analysis=analysis;plotdir=plotdir;lenrowhgt=3; addtitle="KGW_WEP"
-#' #  console=TRUE;verbose=TRUE;subsetC=2007:2025; test=FALSE
+#' #  store=store;analysis=analysis;plotdir=plotdir;lenrowhgt=3; addtitle="KGW_GSV"
+#' #  console=TRUE;verbose=TRUE;subsetC=2007:2024; test=FALSE; minyL=25;maxyL=45;maxyA=10
 SS3inputdata <- function(store,analysis,plotdir,addtitle="",
                          console=FALSE,verbose=TRUE,subsetC=NULL,
                          lenrowhgt=3, test=FALSE,minyL=0,maxyL=0,
@@ -261,33 +245,18 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
   catchB <- datasets$catchB
   filename <- plotss3catches(catchB,extradir=plotdir,analysis=addtitle,
                              console=console)
+  allcatch <- cbind(catchB,total=rowSums(catchB,na.rm=TRUE))
   if (!console) {
     addplot(filen=filename,rundir=plotdir,category="catch",
           caption=paste0("Reported catches by Year and fleet.",
                      " Recreational catches are interpolated between surveys",
                          " The red line in lower plot is a loess curve"))    
     filename <- paste0(analysis,"_Catch_tonnes-by-Fleet.csv")
-    allcatch <- cbind(catchB,total=rowSums(catchB,na.rm=TRUE))
     addtable(allcatch,filen=filename,rundir=plotdir,category="catch",
              caption=paste0("Reported Catch by Fleet (t).")) 
   }
-  catchN <- datasets$catchN
-  if (!is.null(catchN)) {
-    filename <- plotss3catches(catchN,extradir=plotdir,analysis=addtitle,
-                               mass=FALSE,console=console)
-    if (!console) {
-      addplot(filen=filename,rundir=plotdir,category="catch",
-              caption=paste0("Reported catches by Year and fleet.",
-                      " Recreational catches are interpolated between surveys",
-                       " The red line in lower plot is a loess curve"))    
-      filename <- paste0(analysis,"_Catch_numbers-by-Fleet.csv")
-      allcatch <- cbind(catchN,total=rowSums(catchN,na.rm=TRUE))
-      addtable(allcatch,filen=filename,rundir=plotdir,category="catch",
-               caption=paste0("Catch by Fleet as Numbers."))     
-    }
-  }
   titleadd <- addtitle
-  catches <- cbind(catchB,catchN)
+  catches <- catchB
   scaledcatches <- catches
   maxCyrs <- struct$maxcatchyrs
   nyrs <- length(maxCyrs)
@@ -336,8 +305,20 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
   # CPUE tab-------------------
     if (verbose) cat("Generating observed CPUE tab \n")
     cpue <- datasets$cpue
-    filename <- plotfltcpue(cpue,rundir=plotdir,addtitle=addtitle,
-                            console=console)
+    if (console) {
+      filen <- ""
+    } else {
+      fileout <- paste0(addtitle,"_CPUE_for_allfleets.png")
+      filename <- pathtopath(plotdir,fileout)
+    }
+    nflt <- ncol(cpue) - 1
+    plotprep(width=10,height=5.5,newdev=TRUE,filename=filename,verbose=FALSE)
+    parset(plots=c(2,nflt),margin=c(0.25,0.4,0.05,0.1))
+    plotfltcpue(cpue,rundir=plotdir,addtitle=addtitle,console=console,
+                defplot=FALSE)
+    maxy <- getmax(allcatch[,"total"])
+    plot(maxCyrs,allcatch[,"total"],type="l",lwd=3,ylab="Total Catch t",
+         ylim=c(0,maxy),yaxs="i",panel.first=grid())
     if (!console) {
       addplot(filen=filename,rundir=plotdir,category="CPUE",
               caption="Observed CPUE plot for each fleet. redline = loess.")
