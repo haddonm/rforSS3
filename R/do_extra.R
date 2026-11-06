@@ -50,7 +50,7 @@ do_extra <- function(plotreport,extradir,analysis,store,verbose=TRUE,
                      compare=NULL,paths=NULL,trendline=NULL,selxlim=NULL,
                      compareanyway=FALSE,targpt=NULL,includeF=TRUE) {
    # plotreport=plotreport;extradir=extradir;analysis=analysis; store=store
-   # verbose=TRUE; compare=("SG_BC_5","SG_BC"); paths=NULL;includeF=FALSE
+   # verbose=TRUE; compare=NULL; paths=NULL;includeF=TRUE
    # trendline="vB";console=TRUE; compareanyway=TRUE;selxlim=NULL;targpt=0.5
   setuphtml(extradir)
   destination <- pathtopath(store,analysis)

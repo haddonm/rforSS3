@@ -517,7 +517,9 @@ SS3inputdata <- function(store,analysis,plotdir,addtitle="",
           plot(yrs,sampsize[1:numrow,"P-female"],type='l',lwd=2,col=2,xlab="", 
                ylab=paste0(flname," Sex-ratio of ageing data ",addtitle),
                ylim=c(0,maxy),yaxs='i',panel.first=grid) 
+          points(yrs,sampsize[1:numrow,"P-female"],pch=16,cex=1.0,col=2)
           lines(yrs,sampsize[1:numrow,"P-male"],lwd=2,col=4)
+          points(yrs,sampsize[1:numrow,"P-male"],pch=16,col=4)
           abline(h=c(0.5,sampsize["mean","P-female"],sampsize["mean","P-male"]),
                  lwd=c(3,3,3),col=c(1,2,4),lty=2)
           legend('bottomleft',legend=c("females","males"),col=c(2,4),lwd=3,bty='n',
